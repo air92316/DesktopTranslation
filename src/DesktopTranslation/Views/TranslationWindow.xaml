@@ -57,6 +57,13 @@
                              From="1" To="0" Duration="0:0:0.1"/>
         </Storyboard>
 
+        <!-- Translation Result Fade In -->
+        <Storyboard x:Key="ResultFadeInStoryboard">
+            <DoubleAnimation Storyboard.TargetName="TranslationTextBox"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0" To="1" Duration="0:0:0.2"/>
+        </Storyboard>
+
         <!-- Shimmer Animation -->
         <Storyboard x:Key="ShimmerStoryboard" RepeatBehavior="Forever">
             <DoubleAnimation Storyboard.TargetName="ShimmerTranslate"
@@ -220,6 +227,7 @@
                              Background="Transparent"
                              Foreground="{DynamicResource TextBrush}"
                              FontFamily="Segoe UI" FontSize="14"
+                             Block.LineHeight="22.4"
                              TextChanged="InputTextBox_TextChanged"
                              Padding="0"/>
                 </Grid>
@@ -251,23 +259,25 @@
                     <Grid Grid.Row="1">
                         <!-- Shimmer Loading Skeleton -->
                         <StackPanel x:Name="ShimmerPanel" Visibility="Collapsed" Margin="0,8,0,0">
+                            <StackPanel.Resources>
+                                <LinearGradientBrush x:Key="ShimmerOpacityMask" StartPoint="0,0.5" EndPoint="1,0.5">
+                                    <LinearGradientBrush.Transform>
+                                        <TranslateTransform x:Name="ShimmerTranslate" X="-200"/>
+                                    </LinearGradientBrush.Transform>
+                                    <GradientStop Color="#40000000" Offset="0"/>
+                                    <GradientStop Color="#80000000" Offset="0.5"/>
+                                    <GradientStop Color="#40000000" Offset="1"/>
+                                </LinearGradientBrush>
+                            </StackPanel.Resources>
                             <Border Height="16" CornerRadius="4" Background="{DynamicResource ShimmerBrush}"
-                                    Margin="0,0,40,8" Opacity="0.6">
-                                <Border.OpacityMask>
-                                    <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
-                                        <LinearGradientBrush.Transform>
-                                            <TranslateTransform x:Name="ShimmerTranslate" X="-200"/>
-                                        </LinearGradientBrush.Transform>
-                                        <GradientStop Color="#40000000" Offset="0"/>
-                                        <GradientStop Color="#80000000" Offset="0.5"/>
-                                        <GradientStop Color="#40000000" Offset="1"/>
-                                    </LinearGradientBrush>
-                                </Border.OpacityMask>
-                            </Border>
+                                    Margin="0,0,40,8" Opacity="0.6"
+                                    OpacityMask="{StaticResource ShimmerOpacityMask}"/>
                             <Border Height="16" CornerRadius="4" Background="{DynamicResource ShimmerBrush}"
-                                    Margin="0,0,20,8" Opacity="0.6"/>
+                                    Margin="0,0,20,8" Opacity="0.6"
+                                    OpacityMask="{StaticResource ShimmerOpacityMask}"/>
                             <Border Height="16" CornerRadius="4" Background="{DynamicResource ShimmerBrush}"
-                                    Margin="0,0,60,8" Opacity="0.6"/>
+                                    Margin="0,0,60,8" Opacity="0.6"
+                                    OpacityMask="{StaticResource ShimmerOpacityMask}"/>
                         </StackPanel>
 
                         <!-- Error Display -->
@@ -290,6 +300,7 @@
                                  Background="Transparent"
                                  Foreground="{DynamicResource TextBrush}"
                                  FontFamily="Segoe UI" FontSize="14"
+                                 Block.LineHeight="22.4"
                                  Padding="0"/>
                     </Grid>
                 </Grid>

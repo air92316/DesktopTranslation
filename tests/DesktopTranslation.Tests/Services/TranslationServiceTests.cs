@@ -86,7 +86,7 @@ public class TranslationServiceTests
     }
 
     [Fact]
-    public void RegisterEngine_OverwritesExisting()
+    public async Task RegisterEngine_OverwritesExisting()
     {
         var service = new TranslationService();
         var engine1 = new FakeEngine(new TranslationResult("first", "en", true));
@@ -97,7 +97,7 @@ public class TranslationServiceTests
 
         // Verify by calling translate — should use the second engine
         service.SetEngine("google");
-        var result = service.TranslateAsync("test", "zh-TW").Result;
+        var result = await service.TranslateAsync("test", "zh-TW");
         Assert.Equal("second", result.TranslatedText);
     }
 

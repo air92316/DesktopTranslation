@@ -99,6 +99,9 @@ public partial class TranslationWindow : Window
             TranslationTextBox.Visibility = Visibility.Visible;
             TranslationTextBox.Text = result.TranslatedText;
 
+            var resultFadeIn = (Storyboard)FindResource("ResultFadeInStoryboard");
+            resultFadeIn.Begin(this);
+
             _currentSourceLanguage = result.DetectedSourceLanguage;
             if (result.DetectedSourceLanguage != "unknown" && result.DetectedSourceLanguage != "auto")
             {
@@ -325,9 +328,19 @@ public partial class TranslationWindow : Window
         Resources["TextBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0xE5, 0xE5, 0xE5) : Color.FromRgb(0x1A, 0x1A, 0x1A));
         Resources["SeparatorBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x40, 0x40, 0x40) : Color.FromRgb(0xE5, 0xE5, 0xE5));
         Resources["AccentBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x60, 0xCD, 0xFF) : Color.FromRgb(0x00, 0x78, 0xD4));
+        Resources["LabelBrush"] = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88));
         Resources["TitleBarBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x25, 0x25, 0x25) : Color.FromRgb(0xF3, 0xF3, 0xF3));
         Resources["ButtonHoverBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x3A, 0x3A, 0x3A) : Color.FromRgb(0xE8, 0xE8, 0xE8));
+        Resources["SegmentActiveBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x60, 0xCD, 0xFF) : Color.FromRgb(0x00, 0x78, 0xD4));
+        Resources["SegmentInactiveBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x40, 0x40, 0x40) : Color.FromRgb(0xE0, 0xE0, 0xE0));
+        Resources["SegmentActiveTextBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x1A, 0x1A, 0x1A) : Color.FromRgb(0xFF, 0xFF, 0xFF));
+        Resources["SegmentInactiveTextBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0xA0, 0xA0, 0xA0) : Color.FromRgb(0x55, 0x55, 0x55));
         Resources["ShimmerBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x3A, 0x3A, 0x3A) : Color.FromRgb(0xE8, 0xE8, 0xE8));
+        Resources["ErrorBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0xEF, 0x53, 0x50) : Color.FromRgb(0xD3, 0x2F, 0x2F));
         Resources["HistoryBgBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x25, 0x25, 0x25) : Color.FromRgb(0xFA, 0xFA, 0xFA));
+
+        // Re-apply engine button colors after theme change
+        var currentEngine = _translationService.CurrentEngineName == "Google Translate" ? "google" : "llm";
+        UpdateEngineButtons(currentEngine);
     }
 }

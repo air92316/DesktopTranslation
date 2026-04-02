@@ -4,7 +4,8 @@
         Title="DesktopTranslation - 設定"
         Width="420" Height="480"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        FontFamily="Segoe UI">
     <Window.Resources>
         <Style TargetType="TextBlock" x:Key="SectionHeader">
             <Setter Property="FontSize" Value="14"/>
