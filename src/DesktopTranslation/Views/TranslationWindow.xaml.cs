@@ -3,7 +3,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using DesktopTranslation.Helpers;
 using DesktopTranslation.Models;
 using DesktopTranslation.Services;
 
@@ -50,13 +49,11 @@ public partial class TranslationWindow : Window
     {
         var settings = _settingsService.Load();
         RestorePosition(settings);
-        ApplyTheme(settings.Theme);
         UpdateEngineButtons(settings.Engine);
     }
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        // Update clip geometry to match actual size
         ClipGeometry.Rect = new Rect(0, 0, MainBorder.ActualWidth, MainBorder.ActualHeight);
     }
 
@@ -317,29 +314,5 @@ public partial class TranslationWindow : Window
             AlwaysOnTop = Topmost
         };
         _settingsService.Save(updated);
-    }
-
-    // Theme
-    public void ApplyTheme(string themeSetting)
-    {
-        var isDark = ThemeHelper.ShouldUseDarkTheme(themeSetting);
-
-        Resources["BgBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x2D, 0x2D, 0x2D) : Color.FromRgb(0xFF, 0xFF, 0xFF));
-        Resources["TextBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0xE5, 0xE5, 0xE5) : Color.FromRgb(0x1A, 0x1A, 0x1A));
-        Resources["SeparatorBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x40, 0x40, 0x40) : Color.FromRgb(0xE5, 0xE5, 0xE5));
-        Resources["AccentBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x60, 0xCD, 0xFF) : Color.FromRgb(0x00, 0x78, 0xD4));
-        Resources["LabelBrush"] = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88));
-        Resources["TitleBarBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x25, 0x25, 0x25) : Color.FromRgb(0xF3, 0xF3, 0xF3));
-        Resources["ButtonHoverBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x3A, 0x3A, 0x3A) : Color.FromRgb(0xE8, 0xE8, 0xE8));
-        Resources["SegmentActiveBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x60, 0xCD, 0xFF) : Color.FromRgb(0x00, 0x78, 0xD4));
-        Resources["SegmentInactiveBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x40, 0x40, 0x40) : Color.FromRgb(0xE0, 0xE0, 0xE0));
-        Resources["SegmentActiveTextBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x1A, 0x1A, 0x1A) : Color.FromRgb(0xFF, 0xFF, 0xFF));
-        Resources["SegmentInactiveTextBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0xA0, 0xA0, 0xA0) : Color.FromRgb(0x55, 0x55, 0x55));
-        Resources["ShimmerBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x3A, 0x3A, 0x3A) : Color.FromRgb(0xE8, 0xE8, 0xE8));
-        Resources["ErrorBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0xEF, 0x53, 0x50) : Color.FromRgb(0xD3, 0x2F, 0x2F));
-        Resources["HistoryBgBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x25, 0x25, 0x25) : Color.FromRgb(0xFA, 0xFA, 0xFA));
-
-        // Re-apply engine button colors after theme change
-        UpdateEngineButtons(_translationService.CurrentEngineName);
     }
 }

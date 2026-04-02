@@ -1,4 +1,5 @@
 using System.Windows;
+using DesktopTranslation.Helpers;
 using DesktopTranslation.Models;
 using DesktopTranslation.Services;
 using DesktopTranslation.Views;
@@ -24,6 +25,9 @@ public partial class App : Application
         // Initialize services
         _settingsService = new SettingsService();
         _settings = _settingsService.Load();
+
+        // Apply theme at app level
+        ApplyAppTheme(_settings.Theme);
 
         _clipboardService = new ClipboardService();
         _historyService = new HistoryService();
@@ -115,8 +119,8 @@ public partial class App : Application
         }
         _translationService.SetEngine(newSettings.Engine);
 
-        // Update theme
-        _translationWindow?.ApplyTheme(newSettings.Theme);
+        // Update theme at app level (affects all windows via DynamicResource)
+        ApplyAppTheme(newSettings.Theme);
 
         // Update tray menu
         _trayIconManager.UpdateMenu(newSettings.AutoStart, newSettings.Engine);
@@ -148,6 +152,22 @@ public partial class App : Application
 
         // Disposal happens in OnExit — just trigger shutdown
         Shutdown();
+    }
+
+    public void ApplyAppTheme(string themeSetting)
+    {
+        var isDark = ThemeHelper.ShouldUseDarkTheme(themeSetting);
+        var themeUri = isDark
+            ? new Uri("Themes/JapaneseDark.xaml", UriKind.Relative)
+            : new Uri("Themes/JapaneseLight.xaml", UriKind.Relative);
+
+        var merged = Resources.MergedDictionaries;
+
+        // Replace the first dictionary (theme) while keeping GlobalStyles
+        if (merged.Count > 0)
+        {
+            merged[0] = new ResourceDictionary { Source = themeUri };
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

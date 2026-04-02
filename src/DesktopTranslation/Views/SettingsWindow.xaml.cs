@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using DesktopTranslation.Models;
 using DesktopTranslation.Services;
 
@@ -16,6 +17,12 @@ public partial class SettingsWindow : Window
         _settingsService = settingsService;
         _onSettingsApplied = onSettingsApplied;
         LoadSettings();
+    }
+
+    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 1)
+            DragMove();
     }
 
     private void LoadSettings()

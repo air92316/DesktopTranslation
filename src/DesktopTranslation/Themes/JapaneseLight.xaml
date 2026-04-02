@@ -1,0 +1,92 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Japanese UI Style: Light Theme -->
+    <!-- Inspired by washi paper, sumi ink, and ai-iro indigo -->
+
+    <!-- Background Hierarchy -->
+    <Color x:Key="BgPrimary">#FAFBFC</Color>
+    <Color x:Key="BgSecondary">#F2F3F5</Color>
+    <Color x:Key="BgTertiary">#EBEDF0</Color>
+    <Color x:Key="BgCard">#FFFFFF</Color>
+
+    <!-- Text Hierarchy -->
+    <Color x:Key="TextPrimary">#1B1F23</Color>
+    <Color x:Key="TextSecondary">#586069</Color>
+    <Color x:Key="TextTertiary">#8B949E</Color>
+    <Color x:Key="TextInverse">#FAFBFC</Color>
+
+    <!-- Accent (Ai-iro inspired) -->
+    <Color x:Key="AccentPrimary">#4A6FA5</Color>
+    <Color x:Key="AccentHover">#3D5F91</Color>
+    <Color x:Key="AccentActive">#33507A</Color>
+    <Color x:Key="AccentSubtle">#EEF2F7</Color>
+
+    <!-- Functional -->
+    <Color x:Key="Success">#4A9E6D</Color>
+    <Color x:Key="Warning">#C49A3A</Color>
+    <Color x:Key="Error">#C75C5C</Color>
+    <Color x:Key="ErrorSubtle">#FDF2F2</Color>
+
+    <!-- Structural -->
+    <Color x:Key="Separator">#E1E4E8</Color>
+    <Color x:Key="SeparatorStrong">#D1D5DA</Color>
+
+    <!-- Interactive -->
+    <Color x:Key="ButtonHover">#F2F3F5</Color>
+    <Color x:Key="ButtonPressed">#EBEDF0</Color>
+    <Color x:Key="SegmentActive">#4A6FA5</Color>
+    <Color x:Key="SegmentInactive">#EBEDF0</Color>
+    <Color x:Key="SegmentActiveText">#FAFBFC</Color>
+    <Color x:Key="SegmentInactiveText">#586069</Color>
+    <Color x:Key="ShimmerBase">#EBEDF0</Color>
+
+    <!-- ScrollBar -->
+    <Color x:Key="ScrollBarThumb">#C8C3BD</Color>
+    <Color x:Key="ScrollBarThumbHover">#A8A39D</Color>
+
+    <!-- ToolTip -->
+    <Color x:Key="ToolTipBg">#1B1F23</Color>
+    <Color x:Key="ToolTipText">#FAFBFC</Color>
+
+    <!-- Input Controls -->
+    <Color x:Key="InputBg">#FFFFFF</Color>
+    <Color x:Key="InputBorder">#D1D5DA</Color>
+    <Color x:Key="InputFocusBorder">#4A6FA5</Color>
+
+    <!-- Brushes for DynamicResource binding -->
+    <SolidColorBrush x:Key="BgPrimaryBrush" Color="{StaticResource BgPrimary}"/>
+    <SolidColorBrush x:Key="BgSecondaryBrush" Color="{StaticResource BgSecondary}"/>
+    <SolidColorBrush x:Key="BgTertiaryBrush" Color="{StaticResource BgTertiary}"/>
+    <SolidColorBrush x:Key="BgCardBrush" Color="{StaticResource BgCard}"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimary}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondary}"/>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="{StaticResource TextTertiary}"/>
+    <SolidColorBrush x:Key="TextInverseBrush" Color="{StaticResource TextInverse}"/>
+    <SolidColorBrush x:Key="AccentPrimaryBrush" Color="{StaticResource AccentPrimary}"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHover}"/>
+    <SolidColorBrush x:Key="AccentActiveBrush" Color="{StaticResource AccentActive}"/>
+    <SolidColorBrush x:Key="AccentSubtleBrush" Color="{StaticResource AccentSubtle}"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource Success}"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource Warning}"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource Error}"/>
+    <SolidColorBrush x:Key="ErrorSubtleBrush" Color="{StaticResource ErrorSubtle}"/>
+    <SolidColorBrush x:Key="SeparatorBrush" Color="{StaticResource Separator}"/>
+    <SolidColorBrush x:Key="SeparatorStrongBrush" Color="{StaticResource SeparatorStrong}"/>
+    <SolidColorBrush x:Key="ButtonHoverBrush" Color="{StaticResource ButtonHover}"/>
+    <SolidColorBrush x:Key="ButtonPressedBrush" Color="{StaticResource ButtonPressed}"/>
+    <SolidColorBrush x:Key="SegmentActiveBrush" Color="{StaticResource SegmentActive}"/>
+    <SolidColorBrush x:Key="SegmentInactiveBrush" Color="{StaticResource SegmentInactive}"/>
+    <SolidColorBrush x:Key="SegmentActiveTextBrush" Color="{StaticResource SegmentActiveText}"/>
+    <SolidColorBrush x:Key="SegmentInactiveTextBrush" Color="{StaticResource SegmentInactiveText}"/>
+    <SolidColorBrush x:Key="ShimmerBaseBrush" Color="{StaticResource ShimmerBase}"/>
+    <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="{StaticResource ScrollBarThumb}"/>
+    <SolidColorBrush x:Key="ScrollBarThumbHoverBrush" Color="{StaticResource ScrollBarThumbHover}"/>
+    <SolidColorBrush x:Key="ScrollBarTrackBrush" Color="Transparent"/>
+    <SolidColorBrush x:Key="ToolTipBgBrush" Color="{StaticResource ToolTipBg}"/>
+    <SolidColorBrush x:Key="ToolTipTextBrush" Color="{StaticResource ToolTipText}"/>
+    <SolidColorBrush x:Key="InputBgBrush" Color="{StaticResource InputBg}"/>
+    <SolidColorBrush x:Key="InputBorderBrush" Color="{StaticResource InputBorder}"/>
+    <SolidColorBrush x:Key="InputFocusBorderBrush" Color="{StaticResource InputFocusBorder}"/>
+
+</ResourceDictionary>

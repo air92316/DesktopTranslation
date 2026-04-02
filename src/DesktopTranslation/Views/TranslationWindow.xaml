@@ -12,22 +12,6 @@
         ResizeMode="CanResizeWithGrip">
 
     <Window.Resources>
-        <!-- Light Theme Colors -->
-        <SolidColorBrush x:Key="BgBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="TextBrush" Color="#1A1A1A"/>
-        <SolidColorBrush x:Key="SeparatorBrush" Color="#E5E5E5"/>
-        <SolidColorBrush x:Key="AccentBrush" Color="#0078D4"/>
-        <SolidColorBrush x:Key="LabelBrush" Color="#888888"/>
-        <SolidColorBrush x:Key="TitleBarBrush" Color="#F3F3F3"/>
-        <SolidColorBrush x:Key="ButtonHoverBrush" Color="#E8E8E8"/>
-        <SolidColorBrush x:Key="SegmentActiveBrush" Color="#0078D4"/>
-        <SolidColorBrush x:Key="SegmentInactiveBrush" Color="#E0E0E0"/>
-        <SolidColorBrush x:Key="SegmentActiveTextBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="SegmentInactiveTextBrush" Color="#555555"/>
-        <SolidColorBrush x:Key="ShimmerBrush" Color="#E8E8E8"/>
-        <SolidColorBrush x:Key="ErrorBrush" Color="#D32F2F"/>
-        <SolidColorBrush x:Key="HistoryBgBrush" Color="#FAFAFA"/>
-
         <!-- Animation Storyboards -->
         <Storyboard x:Key="FadeInStoryboard">
             <DoubleAnimation Storyboard.TargetProperty="Opacity"
@@ -38,14 +22,14 @@
             </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetName="MainBorder"
                              Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
-                             From="0.95" To="1.0" Duration="0:0:0.15">
+                             From="0.96" To="1.0" Duration="0:0:0.15">
                 <DoubleAnimation.EasingFunction>
                     <CubicEase EasingMode="EaseOut"/>
                 </DoubleAnimation.EasingFunction>
             </DoubleAnimation>
             <DoubleAnimation Storyboard.TargetName="MainBorder"
                              Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
-                             From="0.95" To="1.0" Duration="0:0:0.15">
+                             From="0.96" To="1.0" Duration="0:0:0.15">
                 <DoubleAnimation.EasingFunction>
                     <CubicEase EasingMode="EaseOut"/>
                 </DoubleAnimation.EasingFunction>
@@ -54,14 +38,22 @@
 
         <Storyboard x:Key="FadeOutStoryboard" Completed="FadeOut_Completed">
             <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                             From="1" To="0" Duration="0:0:0.1"/>
+                             From="1" To="0" Duration="0:0:0.1">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseIn"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
         </Storyboard>
 
         <!-- Translation Result Fade In -->
         <Storyboard x:Key="ResultFadeInStoryboard">
             <DoubleAnimation Storyboard.TargetName="TranslationTextBox"
                              Storyboard.TargetProperty="Opacity"
-                             From="0" To="1" Duration="0:0:0.2"/>
+                             From="0" To="1" Duration="0:0:0.2">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseOut"/>
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
         </Storyboard>
 
         <!-- Shimmer Animation -->
@@ -71,19 +63,19 @@
                              From="-200" To="400" Duration="0:0:1.5"/>
         </Storyboard>
 
-        <!-- Button Style -->
+        <!-- Icon Button Style -->
         <Style x:Key="IconButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="6"/>
+            <Setter Property="Padding" Value="8"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Foreground" Value="{DynamicResource LabelBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                CornerRadius="6" Padding="{TemplateBinding Padding}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -91,7 +83,30 @@
                                 <Setter TargetName="Bd" Property="Background"
                                         Value="{DynamicResource ButtonHoverBrush}"/>
                             </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background"
+                                        Value="{DynamicResource ButtonPressedBrush}"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Segment Button Style -->
+        <Style x:Key="SegmentButton" TargetType="Button">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="10,3"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -101,14 +116,14 @@
     <!-- Main Border with Shadow -->
     <Border x:Name="MainBorder"
             CornerRadius="12"
-            Background="{DynamicResource BgBrush}"
+            Background="{DynamicResource BgPrimaryBrush}"
             Margin="10"
             RenderTransformOrigin="0.5,0.5">
         <Border.RenderTransform>
             <ScaleTransform ScaleX="1" ScaleY="1"/>
         </Border.RenderTransform>
         <Border.Effect>
-            <DropShadowEffect BlurRadius="20" Opacity="0.25" ShadowDepth="4" Direction="270"/>
+            <DropShadowEffect BlurRadius="24" Opacity="0.15" ShadowDepth="6" Direction="270"/>
         </Border.Effect>
         <Border.Clip>
             <RectangleGeometry x:Name="ClipGeometry" RadiusX="12" RadiusY="12"/>
@@ -116,13 +131,13 @@
 
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="32"/>      <!-- Title Bar -->
+                <RowDefinition Height="36"/>      <!-- Title Bar -->
                 <RowDefinition Height="*"/>       <!-- Content -->
                 <RowDefinition Height="Auto"/>    <!-- History Panel -->
             </Grid.RowDefinitions>
 
             <!-- Title Bar -->
-            <Border Grid.Row="0" Background="{DynamicResource TitleBarBrush}"
+            <Border Grid.Row="0" Background="{DynamicResource BgSecondaryBrush}"
                     CornerRadius="12,12,0,0"
                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid>
@@ -136,41 +151,24 @@
 
                     <!-- Drag area with title -->
                     <TextBlock Grid.Column="0" Text="DesktopTranslation"
-                               VerticalAlignment="Center" Margin="12,0,0,0"
-                               FontSize="12" Foreground="{DynamicResource LabelBrush}"/>
+                               VerticalAlignment="Center" Margin="14,0,0,0"
+                               FontSize="12" FontWeight="Medium"
+                               Foreground="{DynamicResource TextSecondaryBrush}"/>
 
                     <!-- Segmented Control: Google | LLM -->
-                    <Border Grid.Column="1" CornerRadius="4" Background="{DynamicResource SeparatorBrush}"
-                            Margin="4" Padding="1" VerticalAlignment="Center">
+                    <Border Grid.Column="1" CornerRadius="6" Background="{DynamicResource SeparatorBrush}"
+                            Margin="4" Padding="2" VerticalAlignment="Center">
                         <StackPanel Orientation="Horizontal">
                             <Button x:Name="BtnGoogle" Content="Google"
-                                    Click="EngineGoogle_Click" Padding="8,2" FontSize="11"
+                                    Click="EngineGoogle_Click"
+                                    Style="{StaticResource SegmentButton}"
                                     Background="{DynamicResource SegmentActiveBrush}"
-                                    Foreground="{DynamicResource SegmentActiveTextBrush}"
-                                    BorderThickness="0" Cursor="Hand">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                                CornerRadius="3" Padding="{TemplateBinding Padding}">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
+                                    Foreground="{DynamicResource SegmentActiveTextBrush}"/>
                             <Button x:Name="BtnLlm" Content="LLM"
-                                    Click="EngineLlm_Click" Padding="8,2" FontSize="11"
+                                    Click="EngineLlm_Click"
+                                    Style="{StaticResource SegmentButton}"
                                     Background="{DynamicResource SegmentInactiveBrush}"
-                                    Foreground="{DynamicResource SegmentInactiveTextBrush}"
-                                    BorderThickness="0" Cursor="Hand">
-                                <Button.Template>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                                CornerRadius="3" Padding="{TemplateBinding Padding}">
-                                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Border>
-                                    </ControlTemplate>
-                                </Button.Template>
-                            </Button>
+                                    Foreground="{DynamicResource SegmentInactiveTextBrush}"/>
                         </StackPanel>
                     </Border>
 
@@ -200,23 +198,23 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Left Pane: Input -->
-                <Grid Grid.Column="0" Margin="12,8,8,8">
+                <Grid Grid.Column="0" Margin="16,10,12,10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <!-- Language Label Row -->
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
                         <TextBlock x:Name="SourceLanguageLabel" Text="偵測中..."
-                                   FontSize="12" Foreground="{DynamicResource LabelBrush}"
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center"/>
                         <Button x:Name="BtnTtsSource" Content="&#x1F50A;"
                                 Style="{StaticResource IconButton}" Click="TtsSource_Click"
-                                ToolTip="朗讀原文" Margin="4,0,0,0"/>
+                                ToolTip="朗讀原文" Margin="4,0,0,0" FontSize="12"/>
                         <Button Content="&#x2715;" Style="{StaticResource IconButton}"
                                 Click="ClearInput_Click" ToolTip="清除"
-                                FontSize="11" Margin="2,0,0,0"/>
+                                FontSize="10" Margin="2,0,0,0"/>
                     </StackPanel>
 
                     <!-- Input TextBox -->
@@ -225,7 +223,9 @@
                              VerticalScrollBarVisibility="Auto"
                              BorderThickness="0"
                              Background="Transparent"
-                             Foreground="{DynamicResource TextBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             CaretBrush="{DynamicResource TextPrimaryBrush}"
+                             SelectionBrush="{DynamicResource AccentPrimaryBrush}"
                              FontFamily="Segoe UI" FontSize="14"
                              Block.LineHeight="22.4"
                              TextChanged="InputTextBox_TextChanged"
@@ -236,23 +236,23 @@
                 <Border Grid.Column="1" Background="{DynamicResource SeparatorBrush}" Width="1"/>
 
                 <!-- Right Pane: Translation -->
-                <Grid Grid.Column="2" Margin="8,8,12,8">
+                <Grid Grid.Column="2" Margin="12,10,16,10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <!-- Language Label Row -->
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,4">
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
                         <TextBlock x:Name="TargetLanguageLabel" Text="繁體中文"
-                                   FontSize="12" Foreground="{DynamicResource LabelBrush}"
+                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
                                    VerticalAlignment="Center"/>
                         <Button x:Name="BtnTtsTarget" Content="&#x1F50A;"
                                 Style="{StaticResource IconButton}" Click="TtsTarget_Click"
-                                ToolTip="朗讀翻譯" Margin="4,0,0,0"/>
+                                ToolTip="朗讀翻譯" Margin="4,0,0,0" FontSize="12"/>
                         <Button Content="&#x1F4CB;" Style="{StaticResource IconButton}"
                                 Click="CopyResult_Click" ToolTip="複製翻譯結果"
-                                Margin="2,0,0,0"/>
+                                Margin="2,0,0,0" FontSize="12"/>
                     </StackPanel>
 
                     <!-- Translation Result -->
@@ -269,13 +269,13 @@
                                     <GradientStop Color="#40000000" Offset="1"/>
                                 </LinearGradientBrush>
                             </StackPanel.Resources>
-                            <Border Height="16" CornerRadius="4" Background="{DynamicResource ShimmerBrush}"
+                            <Border Height="14" CornerRadius="4" Background="{DynamicResource ShimmerBaseBrush}"
                                     Margin="0,0,40,8" Opacity="0.6"
                                     OpacityMask="{StaticResource ShimmerOpacityMask}"/>
-                            <Border Height="16" CornerRadius="4" Background="{DynamicResource ShimmerBrush}"
+                            <Border Height="14" CornerRadius="4" Background="{DynamicResource ShimmerBaseBrush}"
                                     Margin="0,0,20,8" Opacity="0.6"
                                     OpacityMask="{StaticResource ShimmerOpacityMask}"/>
-                            <Border Height="16" CornerRadius="4" Background="{DynamicResource ShimmerBrush}"
+                            <Border Height="14" CornerRadius="4" Background="{DynamicResource ShimmerBaseBrush}"
                                     Margin="0,0,60,8" Opacity="0.6"
                                     OpacityMask="{StaticResource ShimmerOpacityMask}"/>
                         </StackPanel>
@@ -285,7 +285,7 @@
                             <TextBlock x:Name="ErrorText" Foreground="{DynamicResource ErrorBrush}"
                                        TextWrapping="Wrap" FontSize="13"/>
                             <TextBlock Margin="0,4,0,0">
-                                <Hyperlink Click="Retry_Click" Foreground="{DynamicResource AccentBrush}">
+                                <Hyperlink Click="Retry_Click" Foreground="{DynamicResource AccentPrimaryBrush}">
                                     重試
                                 </Hyperlink>
                             </TextBlock>
@@ -298,7 +298,9 @@
                                  VerticalScrollBarVisibility="Auto"
                                  BorderThickness="0"
                                  Background="Transparent"
-                                 Foreground="{DynamicResource TextBrush}"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 CaretBrush="{DynamicResource TextPrimaryBrush}"
+                                 SelectionBrush="{DynamicResource AccentPrimaryBrush}"
                                  FontFamily="Segoe UI" FontSize="14"
                                  Block.LineHeight="22.4"
                                  Padding="0"/>
@@ -307,7 +309,7 @@
             </Grid>
 
             <!-- History Panel -->
-            <Border Grid.Row="2" Background="{DynamicResource HistoryBgBrush}"
+            <Border Grid.Row="2" Background="{DynamicResource BgSecondaryBrush}"
                     BorderBrush="{DynamicResource SeparatorBrush}" BorderThickness="0,1,0,0"
                     CornerRadius="0,0,12,12">
                 <Grid>
@@ -318,21 +320,28 @@
 
                     <!-- Toggle Button -->
                     <Button Grid.Row="0" Click="ToggleHistory_Click"
-                            HorizontalAlignment="Stretch" Padding="12,6"
+                            HorizontalAlignment="Stretch" Padding="14,7"
                             Background="Transparent" BorderThickness="0" Cursor="Hand">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
-                                <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                        Padding="{TemplateBinding Padding}" CornerRadius="0,0,12,12">
                                     <ContentPresenter/>
                                 </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background"
+                                                Value="{DynamicResource ButtonHoverBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
                             </ControlTemplate>
                         </Button.Template>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock x:Name="HistoryArrow" Text="&#x25B2;" FontSize="10"
-                                       Foreground="{DynamicResource LabelBrush}" VerticalAlignment="Center"
+                            <TextBlock x:Name="HistoryArrow" Text="&#x25B2;" FontSize="9"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center"
                                        Margin="0,0,6,0"/>
                             <TextBlock x:Name="HistoryLabel" Text="歷史紀錄 (0 筆)"
-                                       FontSize="12" Foreground="{DynamicResource LabelBrush}"/>
+                                       FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"/>
                         </StackPanel>
                     </Button>
 
@@ -341,9 +350,32 @@
                              Visibility="Collapsed" MaxHeight="200"
                              Background="Transparent" BorderThickness="0"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="14,6"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Bd" Background="Transparent"
+                                                    Padding="{TemplateBinding Padding}"
+                                                    CornerRadius="4" Margin="4,1">
+                                                <ContentPresenter/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background"
+                                                            Value="{DynamicResource ButtonHoverBrush}"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid Margin="8,4">
+                                <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
@@ -351,12 +383,12 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Grid.Column="0" Text="{Binding SourceText}"
                                                TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource TextBrush}" FontSize="12"/>
-                                    <TextBlock Grid.Column="1" Text=" → " Margin="4,0"
-                                               Foreground="{DynamicResource LabelBrush}" FontSize="12"/>
+                                               Foreground="{DynamicResource TextPrimaryBrush}" FontSize="12"/>
+                                    <TextBlock Grid.Column="1" Text=" → " Margin="6,0"
+                                               Foreground="{DynamicResource TextSecondaryBrush}" FontSize="12"/>
                                     <TextBlock Grid.Column="2" Text="{Binding TranslatedText}"
                                                TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource AccentBrush}" FontSize="12"/>
+                                               Foreground="{DynamicResource AccentPrimaryBrush}" FontSize="12"/>
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

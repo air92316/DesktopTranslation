@@ -1,9 +1,15 @@
-﻿<Application x:Class="DesktopTranslation.App"
+<Application x:Class="DesktopTranslation.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:DesktopTranslation"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Default to light theme; switched at runtime by ThemeHelper -->
+                <ResourceDictionary Source="Themes/JapaneseLight.xaml"/>
+                <ResourceDictionary Source="Themes/GlobalStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
