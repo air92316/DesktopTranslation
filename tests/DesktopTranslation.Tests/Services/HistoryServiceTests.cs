@@ -39,4 +39,48 @@ public class HistoryServiceTests
         service.Clear();
         Assert.Empty(service.GetAll());
     }
+
+    [Fact]
+    public void GetAll_EmptyByDefault()
+    {
+        var service = new HistoryService();
+        Assert.Empty(service.GetAll());
+    }
+
+    [Fact]
+    public void Add_ExactlyAtMax_DoesNotRemove()
+    {
+        var service = new HistoryService(maxEntries: 2);
+        service.Add(new TranslationHistoryEntry(
+            "text0", "t0", "en", "zh-TW", "google", DateTime.UtcNow));
+        service.Add(new TranslationHistoryEntry(
+            "text1", "t1", "en", "zh-TW", "google", DateTime.UtcNow));
+
+        Assert.Equal(2, service.GetAll().Count);
+        Assert.Equal("text0", service.GetAll()[0].SourceText);
+    }
+
+    [Fact]
+    public void Add_MaxEntriesOne_KeepsOnlyLatest()
+    {
+        var service = new HistoryService(maxEntries: 1);
+        service.Add(new TranslationHistoryEntry(
+            "first", "f", "en", "zh-TW", "google", DateTime.UtcNow));
+        service.Add(new TranslationHistoryEntry(
+            "second", "s", "en", "zh-TW", "google", DateTime.UtcNow));
+
+        Assert.Single(service.GetAll());
+        Assert.Equal("second", service.GetAll()[0].SourceText);
+    }
+
+    [Fact]
+    public void GetAll_ReturnsReadOnlyCopy()
+    {
+        var service = new HistoryService(maxEntries: 50);
+        service.Add(new TranslationHistoryEntry(
+            "hello", "你好", "en", "zh-TW", "google", DateTime.UtcNow));
+
+        var list = service.GetAll();
+        Assert.IsAssignableFrom<IReadOnlyList<TranslationHistoryEntry>>(list);
+    }
 }

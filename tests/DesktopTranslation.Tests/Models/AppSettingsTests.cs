@@ -30,4 +30,24 @@ public class AppSettingsTests
         Assert.Equal("google", original.Engine);
         Assert.Equal("llm", clone.Engine);
     }
+
+    [Fact]
+    public void WindowPosition_Defaults()
+    {
+        var settings = new AppSettings();
+        Assert.Equal(100, settings.WindowX);
+        Assert.Equal(200, settings.WindowY);
+    }
+
+    [Fact]
+    public void WithExpression_PreservesOtherProperties()
+    {
+        var original = new AppSettings { Engine = "llm", Theme = "dark", ApiKey = "key123" };
+        var modified = original with { TtsSpeed = 1.5 };
+
+        Assert.Equal("llm", modified.Engine);
+        Assert.Equal("dark", modified.Theme);
+        Assert.Equal("key123", modified.ApiKey);
+        Assert.Equal(1.5, modified.TtsSpeed);
+    }
 }

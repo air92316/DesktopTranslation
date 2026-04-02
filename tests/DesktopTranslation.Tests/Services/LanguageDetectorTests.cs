@@ -38,4 +38,29 @@ public class LanguageDetectorTests
     {
         Assert.Equal("zh-TW", LanguageDetector.GetTargetLanguage(input));
     }
+
+    [Fact]
+    public void Detect_OnlyPunctuation_DefaultsToZhTW()
+    {
+        Assert.Equal("zh-TW", LanguageDetector.GetTargetLanguage("...!!!???"));
+    }
+
+    [Fact]
+    public void Detect_SingleCjkCharacter_ReturnsEn()
+    {
+        Assert.Equal("en", LanguageDetector.GetTargetLanguage("中"));
+    }
+
+    [Fact]
+    public void Detect_SingleLatinCharacter_ReturnsZhTW()
+    {
+        Assert.Equal("zh-TW", LanguageDetector.GetTargetLanguage("A"));
+    }
+
+    [Fact]
+    public void Detect_CjkExtensionA_ReturnsEn()
+    {
+        // \u3400 is first char in CJK Extension A
+        Assert.Equal("en", LanguageDetector.GetTargetLanguage("\u3400\u3401\u3402"));
+    }
 }

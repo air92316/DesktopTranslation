@@ -48,4 +48,35 @@ public class SettingsServiceTests : IDisposable
         var settings = _service.Load();
         Assert.Equal(720, settings.WindowWidth);
     }
+
+    [Fact]
+    public void Load_PartialJson_FillsDefaults()
+    {
+        File.WriteAllText(
+            Path.Combine(_tempDir, "settings.json"),
+            """{"engine":"llm"}""");
+        var settings = _service.Load();
+        Assert.Equal("llm", settings.Engine);
+        Assert.Equal(720, settings.WindowWidth);
+        Assert.Equal("system", settings.Theme);
+    }
+
+    [Fact]
+    public void Save_CreatesFile_WhenNotExists()
+    {
+        var settings = new AppSettings { Theme = "dark" };
+        _service.Save(settings);
+
+        Assert.True(File.Exists(Path.Combine(_tempDir, "settings.json")));
+    }
+
+    [Fact]
+    public void Save_OverwritesPreviousFile()
+    {
+        _service.Save(new AppSettings { Engine = "google" });
+        _service.Save(new AppSettings { Engine = "llm" });
+
+        var loaded = _service.Load();
+        Assert.Equal("llm", loaded.Engine);
+    }
 }
