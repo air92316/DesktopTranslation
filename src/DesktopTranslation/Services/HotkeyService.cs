@@ -8,19 +8,18 @@ public class HotkeyService : IDisposable
 {
     private IntPtr _hookId = IntPtr.Zero;
     private readonly Win32Interop.LowLevelKeyboardProc _hookProc;
-    private DateTime _lastCtrlCTime = DateTime.MinValue;
+    private readonly DoubleTapDetector _doubleTapDetector;
     private bool _ctrlPressed;
-    private int _doubleTapInterval;
 
     public event Action? DoubleCopyDetected;
 
     public HotkeyService(int doubleTapInterval = 400)
     {
-        _doubleTapInterval = doubleTapInterval;
+        _doubleTapDetector = new DoubleTapDetector(doubleTapInterval);
         _hookProc = HookCallback;
     }
 
-    public void UpdateInterval(int interval) => _doubleTapInterval = interval;
+    public void UpdateInterval(int interval) => _doubleTapDetector.UpdateInterval(interval);
 
     public void Start()
     {
@@ -57,19 +56,11 @@ public class HotkeyService : IDisposable
             }
             else if (hookStruct.vkCode == Win32Interop.VK_C && isKeyDown && _ctrlPressed)
             {
-                var now = DateTime.UtcNow;
-                var elapsed = (now - _lastCtrlCTime).TotalMilliseconds;
-
-                if (elapsed < _doubleTapInterval && elapsed > 50) // > 50ms to ignore key repeat
+                if (_doubleTapDetector.RecordTap())
                 {
-                    _lastCtrlCTime = DateTime.MinValue;
                     // Fire event on UI thread - keep hook callback fast
                     System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
                         DoubleCopyDetected?.Invoke());
-                }
-                else
-                {
-                    _lastCtrlCTime = now;
                 }
             }
         }
