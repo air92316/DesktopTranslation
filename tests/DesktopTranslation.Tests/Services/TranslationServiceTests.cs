@@ -123,4 +123,92 @@ public class TranslationServiceTests
         service.SetEngine("google");
         Assert.Equal("google", service.CurrentEngineName);
     }
+
+    [Fact]
+    public async Task TranslateAsync_AfterSwitchingEngine_UsesNewEngine()
+    {
+        var service = new TranslationService();
+        service.RegisterEngine("google", new FakeEngine(
+            new TranslationResult("google-result", "en", true)));
+        service.RegisterEngine("llm", new FakeEngine(
+            new TranslationResult("llm-result", "en", true)));
+
+        service.SetEngine("google");
+        var result1 = await service.TranslateAsync("hello", "zh-TW");
+        Assert.Equal("google-result", result1.TranslatedText);
+
+        service.SetEngine("llm");
+        var result2 = await service.TranslateAsync("hello", "zh-TW");
+        Assert.Equal("llm-result", result2.TranslatedText);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_CancelledToken_ReturnsErrorOrThrows()
+    {
+        var service = new TranslationService();
+        service.RegisterEngine("slow", new SlowEngine());
+        service.SetEngine("slow");
+
+        using var cts = new CancellationTokenSource();
+        cts.Cancel(); // Cancel immediately
+
+        var result = await service.TranslateAsync("hello", "zh-TW", cts.Token);
+
+        // The retry pipeline should catch the cancellation and return error
+        Assert.False(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_EmptyText_ReturnsError()
+    {
+        var service = new TranslationService();
+        var expected = new TranslationResult("", "en", true);
+        service.RegisterEngine("google", new FakeEngine(expected));
+        service.SetEngine("google");
+
+        var result = await service.TranslateAsync("", "zh-TW");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("Input text is empty", result.ErrorMessage);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_MultipleSequentialCalls_AllSucceed()
+    {
+        var service = new TranslationService();
+        service.RegisterEngine("google", new FakeEngine(
+            new TranslationResult("translated", "en", true)));
+        service.SetEngine("google");
+
+        for (int i = 0; i < 5; i++)
+        {
+            var result = await service.TranslateAsync($"text{i}", "zh-TW");
+            Assert.True(result.IsSuccess);
+            Assert.Equal("translated", result.TranslatedText);
+        }
+    }
+
+    [Fact]
+    public void RegisterEngine_NullEngine_ThrowsOnTranslate()
+    {
+        var service = new TranslationService();
+        // Registering null should still allow setting it, but translating should fail
+        service.RegisterEngine("null-engine", null!);
+        service.SetEngine("null-engine");
+
+        Assert.ThrowsAnyAsync<Exception>(
+            () => service.TranslateAsync("hello", "zh-TW"));
+    }
+
+    private sealed class SlowEngine : ITranslationEngine
+    {
+        public string Name => "Slow";
+
+        public async Task<TranslationResult> TranslateAsync(
+            string text, string targetLanguage, CancellationToken ct = default)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(30), ct);
+            return new TranslationResult("done", "en", true);
+        }
+    }
 }

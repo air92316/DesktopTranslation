@@ -83,4 +83,63 @@ public class HistoryServiceTests
         var list = service.GetAll();
         Assert.IsAssignableFrom<IReadOnlyList<TranslationHistoryEntry>>(list);
     }
+
+    [Fact]
+    public void Add_NullEntry_ThrowsOrStores()
+    {
+        // TranslationHistoryEntry is a record; null is a valid reference
+        var service = new HistoryService(maxEntries: 50);
+        service.Add(null!);
+        Assert.Single(service.GetAll());
+        Assert.Null(service.GetAll()[0]);
+    }
+
+    [Fact]
+    public void Add_EntryWithNullFields_Stores()
+    {
+        var service = new HistoryService(maxEntries: 50);
+        var entry = new TranslationHistoryEntry(null!, null!, null!, null!, null!, DateTime.MinValue);
+        service.Add(entry);
+
+        var stored = service.GetAll()[0];
+        Assert.Null(stored.SourceText);
+        Assert.Null(stored.TranslatedText);
+    }
+
+    [Fact]
+    public void Add_ManyEntries_MaintainsOrder()
+    {
+        var service = new HistoryService(maxEntries: 100);
+        for (int i = 0; i < 10; i++)
+            service.Add(new TranslationHistoryEntry(
+                $"text{i}", $"t{i}", "en", "zh-TW", "google", DateTime.UtcNow));
+
+        var all = service.GetAll();
+        for (int i = 0; i < 10; i++)
+            Assert.Equal($"text{i}", all[i].SourceText);
+    }
+
+    [Fact]
+    public void Clear_ThenAdd_WorksNormally()
+    {
+        var service = new HistoryService(maxEntries: 50);
+        service.Add(new TranslationHistoryEntry(
+            "first", "f", "en", "zh-TW", "google", DateTime.UtcNow));
+        service.Clear();
+        service.Add(new TranslationHistoryEntry(
+            "second", "s", "en", "zh-TW", "google", DateTime.UtcNow));
+
+        Assert.Single(service.GetAll());
+        Assert.Equal("second", service.GetAll()[0].SourceText);
+    }
+
+    [Fact]
+    public void Add_EmptyStrings_Stores()
+    {
+        var service = new HistoryService(maxEntries: 50);
+        service.Add(new TranslationHistoryEntry("", "", "", "", "", DateTime.UtcNow));
+
+        Assert.Single(service.GetAll());
+        Assert.Equal("", service.GetAll()[0].SourceText);
+    }
 }

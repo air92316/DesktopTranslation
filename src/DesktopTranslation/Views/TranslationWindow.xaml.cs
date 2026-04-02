@@ -340,7 +340,6 @@ public partial class TranslationWindow : Window
         Resources["HistoryBgBrush"] = new SolidColorBrush(isDark ? Color.FromRgb(0x25, 0x25, 0x25) : Color.FromRgb(0xFA, 0xFA, 0xFA));
 
         // Re-apply engine button colors after theme change
-        var currentEngine = _translationService.CurrentEngineName == "Google Translate" ? "google" : "llm";
-        UpdateEngineButtons(currentEngine);
+        UpdateEngineButtons(_translationService.CurrentEngineName);
     }
 }

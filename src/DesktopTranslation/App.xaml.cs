@@ -146,11 +146,7 @@ public partial class App : Application
             _translationWindow.HideWindow();
         }
 
-        // Dispose all services
-        _hotkeyService.Dispose();
-        _ttsService.Dispose();
-        _trayIconManager.Dispose();
-
+        // Disposal happens in OnExit — just trigger shutdown
         Shutdown();
     }
 

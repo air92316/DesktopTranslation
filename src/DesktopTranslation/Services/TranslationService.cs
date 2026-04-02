@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using DesktopTranslation.Models;
 using Polly;
 using Polly.Retry;
@@ -31,13 +32,16 @@ public class TranslationService
 
     public void SetEngine(string key)
     {
-        if (_engines.ContainsKey(key))
+        if (_engines.TryGetValue(key, out _))
             CurrentEngineName = key;
     }
 
     public async Task<TranslationResult> TranslateAsync(
         string text, string targetLanguage, CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(text))
+            return new TranslationResult("", "unknown", false, "Input text is empty");
+
         if (!_engines.TryGetValue(CurrentEngineName, out var engine))
             return new TranslationResult("", "unknown", false, "No engine configured");
 
@@ -49,7 +53,8 @@ public class TranslationService
         }
         catch (Exception ex)
         {
-            return new TranslationResult("", "unknown", false, $"Translation failed: {ex.Message}");
+            Debug.WriteLine($"Translation pipeline error: {ex}");
+            return new TranslationResult("", "unknown", false, "Translation failed. Please try again.");
         }
     }
 }

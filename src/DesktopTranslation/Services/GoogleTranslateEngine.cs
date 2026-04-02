@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using GTranslate.Translators;
 using DesktopTranslation.Models;
 
@@ -12,6 +13,9 @@ public class GoogleTranslateEngine : ITranslationEngine
     public async Task<TranslationResult> TranslateAsync(
         string text, string targetLanguage, CancellationToken ct = default)
     {
+        if (string.IsNullOrWhiteSpace(text))
+            return new TranslationResult("", "unknown", false, "Input text is empty");
+
         try
         {
             var result = await _translator.TranslateAsync(text, targetLanguage);
@@ -22,11 +26,12 @@ public class GoogleTranslateEngine : ITranslationEngine
         }
         catch (Exception ex)
         {
+            Debug.WriteLine($"Google translation error: {ex}");
             return new TranslationResult(
                 TranslatedText: "",
                 DetectedSourceLanguage: "unknown",
                 IsSuccess: false,
-                ErrorMessage: ex.Message);
+                ErrorMessage: "Translation failed. Please check your connection and try again.");
         }
     }
 }

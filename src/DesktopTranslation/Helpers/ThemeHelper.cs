@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Win32;
 
 namespace DesktopTranslation.Helpers;
@@ -13,8 +14,9 @@ public static class ThemeHelper
             var value = key?.GetValue("AppsUseLightTheme");
             return value is int intValue && intValue == 0;
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"Theme detection failed: {ex.Message}");
             return false;
         }
     }

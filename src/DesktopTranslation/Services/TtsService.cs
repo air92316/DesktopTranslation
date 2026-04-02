@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Speech.Synthesis;
 
 namespace DesktopTranslation.Services;
@@ -5,7 +6,7 @@ namespace DesktopTranslation.Services;
 public class TtsService : IDisposable
 {
     private readonly SpeechSynthesizer _synth = new();
-    private bool _isSpeaking;
+    private volatile bool _isSpeaking;
 
     public bool IsSpeaking => _isSpeaking;
 
@@ -45,9 +46,9 @@ public class TtsService : IDisposable
             _synth.SelectVoiceByHints(VoiceGender.Female, VoiceAge.Adult,
                 0, new System.Globalization.CultureInfo(culture));
         }
-        catch
+        catch (Exception ex)
         {
-            // Fallback to default voice
+            Debug.WriteLine($"Voice selection failed, using default: {ex.Message}");
         }
     }
 
