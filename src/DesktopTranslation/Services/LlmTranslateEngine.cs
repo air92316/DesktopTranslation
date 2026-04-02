@@ -54,7 +54,7 @@ public class LlmTranslateEngine : ITranslationEngine
             ],
             cancellationToken: ct);
 
-        var translated = response.Value.Content[0].Text;
+        var translated = response.Value.Content[0].Text ?? "";
         return new TranslationResult(translated, "auto", true);
     }
 
@@ -70,7 +70,7 @@ public class LlmTranslateEngine : ITranslationEngine
             Messages = [new() { Role = "user", Content = text }]
         });
 
-        var translated = response.Content[0].Text;
+        var translated = response.Content[0].Text ?? "";
         return new TranslationResult(translated, "auto", true);
     }
 }
