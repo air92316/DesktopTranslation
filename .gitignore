@@ -37,3 +37,4 @@ dt-debug.log
 ## Installer binary (distributed via website, not git)
 website/downloads/*.exe
 dist/
+CLAUDE.md
