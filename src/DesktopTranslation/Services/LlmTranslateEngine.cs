@@ -32,6 +32,9 @@ public class LlmTranslateEngine : ITranslationEngine
         // Truncate to prevent abuse
         var safeText = text.Length > MaxInputLength ? text[..MaxInputLength] : text;
 
+        // Detect source language from the original text before translation
+        var detectedSource = LanguageDetector.DetectSourceLanguage(text);
+
         try
         {
             var targetName = targetLanguage == "en" ? "English" : "Traditional Chinese (zh-TW)";
@@ -43,14 +46,18 @@ public class LlmTranslateEngine : ITranslationEngine
             // Wrap user input in XML tags to isolate from prompt
             var wrappedText = $"<translate>{safeText}</translate>";
 
+            TranslationResult result;
             if (_provider == "openai")
             {
-                return await TranslateWithOpenAiAsync(systemPrompt, wrappedText, ct);
+                result = await TranslateWithOpenAiAsync(systemPrompt, wrappedText, ct);
             }
             else
             {
-                return await TranslateWithClaudeAsync(systemPrompt, wrappedText, ct);
+                result = await TranslateWithClaudeAsync(systemPrompt, wrappedText, ct);
             }
+
+            // Replace the placeholder "auto" with the heuristic-detected language
+            return result with { DetectedSourceLanguage = detectedSource };
         }
         catch (Exception ex)
         {

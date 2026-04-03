@@ -89,8 +89,18 @@ public class TrayIconManager : IDisposable
         menu.Items.Add("設定", null, (_, _) => _onOpenSettings());
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add("關於", null, (_, _) =>
-            System.Windows.MessageBox.Show("DesktopTranslation v1.0\n雙擊 Ctrl+C 快速翻譯",
-                "關於", MessageBoxButton.OK, MessageBoxImage.Information));
+            System.Windows.MessageBox.Show(
+                "DesktopTranslation v1.0.0\n" +
+                "─────────────────────────\n" +
+                "桌面即時翻譯工具\n\n" +
+                "雙擊 Ctrl+C 即可將選取文字快速翻譯。\n" +
+                "支援 Google Translate 及 LLM（Claude / OpenAI）引擎。\n" +
+                "自動偵測語言方向，中文翻英文、其他語言翻中文。\n\n" +
+                "開發者：Ramen Cat Studio\n" +
+                "授權條款：MIT License\n" +
+                "技術棧：C# / .NET 8 / WPF\n\n" +
+                "© 2026 Ramen Cat Studio. All rights reserved.",
+                "關於 DesktopTranslation", MessageBoxButton.OK, MessageBoxImage.Information));
         menu.Items.Add("結束", null, (_, _) => _onExit());
 
         return menu;

@@ -191,24 +191,28 @@
 
             <!-- Content Area -->
             <Grid Grid.Row="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="1"/>   <!-- Separator -->
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>   <!-- Language Selection Bar -->
+                    <RowDefinition Height="*"/>      <!-- Text Areas -->
+                </Grid.RowDefinitions>
 
-                <!-- Left Pane: Input -->
-                <Grid Grid.Column="0" Margin="16,10,12,10">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                <!-- Language Selection Bar -->
+                <Grid Grid.Row="0" Margin="16,8,16,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>     <!-- Source group -->
+                        <ColumnDefinition Width="Auto"/>  <!-- Swap button -->
+                        <ColumnDefinition Width="*"/>     <!-- Target group -->
+                    </Grid.ColumnDefinitions>
 
-                    <!-- Language Label Row -->
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
-                        <TextBlock x:Name="SourceLanguageLabel" Text="偵測中..."
-                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center"/>
+                    <!-- Source Language Group -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal"
+                                HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <ComboBox x:Name="SourceLanguageCombo"
+                                  FontSize="11" MinWidth="100" Height="22"
+                                  Foreground="{DynamicResource TextSecondaryBrush}"
+                                  Background="Transparent" BorderThickness="0"
+                                  SelectionChanged="SourceLanguageCombo_SelectionChanged"
+                                  VerticalContentAlignment="Center"/>
                         <Button x:Name="BtnTtsSource" Content="&#x1F50A;"
                                 Style="{StaticResource IconButton}" Click="TtsSource_Click"
                                 ToolTip="朗讀原文" Margin="4,0,0,0" FontSize="12"/>
@@ -217,8 +221,68 @@
                                 FontSize="10" Margin="2,0,0,0"/>
                     </StackPanel>
 
-                    <!-- Input TextBox -->
-                    <TextBox x:Name="InputTextBox" Grid.Row="1"
+                    <!-- Swap Button (centered) -->
+                    <Button x:Name="BtnSwap" Grid.Column="1"
+                            Content="&#x21C4;"
+                            Click="SwapLanguages_Click"
+                            ToolTip="互換語言"
+                            Width="28" Height="28"
+                            Margin="12,0"
+                            FontSize="14" FontWeight="Bold"
+                            Foreground="{DynamicResource TextSecondaryBrush}"
+                            Background="{DynamicResource BgSecondaryBrush}"
+                            BorderThickness="0" Cursor="Hand"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                        CornerRadius="14" Padding="2">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Bd" Property="Background"
+                                                Value="{DynamicResource AccentPrimaryBrush}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
+
+                    <!-- Target Language Group -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal"
+                                HorizontalAlignment="Left" VerticalAlignment="Center">
+                        <ComboBox x:Name="TargetLanguageCombo"
+                                  FontSize="11" MinWidth="100" Height="22"
+                                  Foreground="{DynamicResource TextSecondaryBrush}"
+                                  Background="Transparent" BorderThickness="0"
+                                  SelectionChanged="TargetLanguageCombo_SelectionChanged"
+                                  VerticalContentAlignment="Center"/>
+                        <Button x:Name="BtnTtsTarget" Content="&#x1F50A;"
+                                Style="{StaticResource IconButton}" Click="TtsTarget_Click"
+                                ToolTip="朗讀翻譯" Margin="4,0,0,0" FontSize="12"/>
+                        <Button Content="&#x1F4CB;" Style="{StaticResource IconButton}"
+                                Click="CopyResult_Click" ToolTip="複製翻譯結果"
+                                Margin="2,0,0,0" FontSize="12"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Separator line under language bar -->
+                <Border Grid.Row="0" Height="1" VerticalAlignment="Bottom"
+                        Background="{DynamicResource SeparatorBrush}" Margin="16,0"/>
+
+                <!-- Text Areas -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="1"/>   <!-- Pure separator -->
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Left Pane: Input -->
+                    <TextBox x:Name="InputTextBox" Grid.Column="0"
+                             Margin="16,10,12,10"
                              TextWrapping="Wrap" AcceptsReturn="True"
                              VerticalScrollBarVisibility="Auto"
                              BorderThickness="0"
@@ -230,35 +294,15 @@
                              Block.LineHeight="22.4"
                              TextChanged="InputTextBox_TextChanged"
                              Padding="0"/>
-                </Grid>
 
-                <!-- Separator -->
-                <Border Grid.Column="1" Background="{DynamicResource SeparatorBrush}" Width="1"/>
+                    <!-- Vertical Separator -->
+                    <Border Grid.Column="1" Background="{DynamicResource SeparatorBrush}"
+                            Width="1" HorizontalAlignment="Center"/>
 
-                <!-- Right Pane: Translation -->
-                <Grid Grid.Column="2" Margin="12,10,16,10">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Language Label Row -->
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,6">
-                        <TextBlock x:Name="TargetLanguageLabel" Text="繁體中文"
-                                   FontSize="11" Foreground="{DynamicResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center"/>
-                        <Button x:Name="BtnTtsTarget" Content="&#x1F50A;"
-                                Style="{StaticResource IconButton}" Click="TtsTarget_Click"
-                                ToolTip="朗讀翻譯" Margin="4,0,0,0" FontSize="12"/>
-                        <Button Content="&#x1F4CB;" Style="{StaticResource IconButton}"
-                                Click="CopyResult_Click" ToolTip="複製翻譯結果"
-                                Margin="2,0,0,0" FontSize="12"/>
-                    </StackPanel>
-
-                    <!-- Translation Result -->
-                    <Grid Grid.Row="1">
+                    <!-- Right Pane: Translation -->
+                    <Grid Grid.Column="2" Margin="12,10,16,10">
                         <!-- Shimmer Loading Skeleton -->
-                        <StackPanel x:Name="ShimmerPanel" Visibility="Collapsed" Margin="0,8,0,0">
+                        <StackPanel x:Name="ShimmerPanel" Visibility="Collapsed" Margin="0,0,0,0">
                             <StackPanel.Resources>
                                 <LinearGradientBrush x:Key="ShimmerOpacityMask" StartPoint="0,0.5" EndPoint="1,0.5">
                                     <LinearGradientBrush.Transform>
@@ -281,7 +325,7 @@
                         </StackPanel>
 
                         <!-- Error Display -->
-                        <StackPanel x:Name="ErrorPanel" Visibility="Collapsed" Margin="0,8,0,0">
+                        <StackPanel x:Name="ErrorPanel" Visibility="Collapsed" Margin="0,0,0,0">
                             <TextBlock x:Name="ErrorText" Foreground="{DynamicResource ErrorBrush}"
                                        TextWrapping="Wrap" FontSize="13"/>
                             <TextBlock Margin="0,4,0,0">

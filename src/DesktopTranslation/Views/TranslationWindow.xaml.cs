@@ -21,6 +21,43 @@ public partial class TranslationWindow : Window
     private string _currentSourceLanguage = "";
     private bool _historyExpanded;
     private bool _isTranslating;
+    private bool _suppressLanguageChangeEvent;
+
+    // Language options: (code, display name)
+    private static readonly (string Code, string Name)[] SourceLanguages =
+    [
+        ("auto", "自動偵測"),
+        ("en", "English"),
+        ("zh-TW", "繁體中文"),
+        ("zh-CN", "簡體中文"),
+        ("ja", "日本語"),
+        ("ko", "한국어"),
+        ("fr", "Français"),
+        ("de", "Deutsch"),
+        ("es", "Español"),
+        ("pt", "Português"),
+        ("ru", "Русский"),
+        ("th", "ไทย"),
+        ("vi", "Tiếng Việt"),
+        ("ar", "العربية"),
+    ];
+
+    private static readonly (string Code, string Name)[] TargetLanguages =
+    [
+        ("zh-TW", "繁體中文"),
+        ("en", "English"),
+        ("zh-CN", "簡體中文"),
+        ("ja", "日本語"),
+        ("ko", "한국어"),
+        ("fr", "Français"),
+        ("de", "Deutsch"),
+        ("es", "Español"),
+        ("pt", "Português"),
+        ("ru", "Русский"),
+        ("th", "ไทย"),
+        ("vi", "Tiếng Việt"),
+        ("ar", "العربية"),
+    ];
 
     public TranslationWindow(
         TranslationService translationService,
@@ -41,9 +78,73 @@ public partial class TranslationWindow : Window
         };
         _debounceTimer.Tick += DebounceTimer_Tick;
 
+        InitLanguageComboBoxes();
         Loaded += OnLoaded;
         SizeChanged += OnSizeChanged;
     }
+
+    private void InitLanguageComboBoxes()
+    {
+        _suppressLanguageChangeEvent = true;
+
+        SourceLanguageCombo.Items.Clear();
+        foreach (var (code, name) in SourceLanguages)
+            SourceLanguageCombo.Items.Add(new System.Windows.Controls.ComboBoxItem
+            {
+                Content = name,
+                Tag = code
+            });
+        SourceLanguageCombo.SelectedIndex = 0; // auto
+
+        TargetLanguageCombo.Items.Clear();
+        foreach (var (code, name) in TargetLanguages)
+            TargetLanguageCombo.Items.Add(new System.Windows.Controls.ComboBoxItem
+            {
+                Content = name,
+                Tag = code
+            });
+        TargetLanguageCombo.SelectedIndex = 0; // zh-TW
+
+        _suppressLanguageChangeEvent = false;
+    }
+
+    private void SetSourceLanguageCombo(string code)
+    {
+        _suppressLanguageChangeEvent = true;
+        for (int i = 0; i < SourceLanguageCombo.Items.Count; i++)
+        {
+            if (SourceLanguageCombo.Items[i] is System.Windows.Controls.ComboBoxItem item
+                && (string)item.Tag == code)
+            {
+                SourceLanguageCombo.SelectedIndex = i;
+                break;
+            }
+        }
+        _suppressLanguageChangeEvent = false;
+    }
+
+    private void SetTargetLanguageCombo(string code)
+    {
+        _suppressLanguageChangeEvent = true;
+        for (int i = 0; i < TargetLanguageCombo.Items.Count; i++)
+        {
+            if (TargetLanguageCombo.Items[i] is System.Windows.Controls.ComboBoxItem item
+                && (string)item.Tag == code)
+            {
+                TargetLanguageCombo.SelectedIndex = i;
+                break;
+            }
+        }
+        _suppressLanguageChangeEvent = false;
+    }
+
+    private string GetSelectedSourceCode() =>
+        SourceLanguageCombo.SelectedItem is System.Windows.Controls.ComboBoxItem item
+            ? (string)item.Tag : "auto";
+
+    private string GetSelectedTargetCode() =>
+        TargetLanguageCombo.SelectedItem is System.Windows.Controls.ComboBoxItem item
+            ? (string)item.Tag : "zh-TW";
 
     private bool _llmAvailable;
 
@@ -88,16 +189,20 @@ public partial class TranslationWindow : Window
         _currentTargetLanguage = targetLanguage;
 
         InputTextBox.Text = text;
-        TargetLanguageLabel.Text = targetLanguage == "en" ? "English" : "繁體中文";
 
-        var sourceLang = targetLanguage == "en" ? "中文 - 已偵測" : "已偵測";
-        SourceLanguageLabel.Text = sourceLang;
+        // Set source to "auto" and target to detected language
+        SetSourceLanguageCombo("auto");
+        SetTargetLanguageCombo(targetLanguage);
 
         Show();
         Activate();
 
-        var fadeIn = (Storyboard)FindResource("FadeInStoryboard");
-        fadeIn.Begin(this);
+        try
+        {
+            var fadeIn = (Storyboard)FindResource("FadeInStoryboard");
+            fadeIn.Begin(this);
+        }
+        catch { /* animation not critical */ }
 
         _ = TranslateAsync(text, targetLanguage);
     }
@@ -145,10 +250,19 @@ public partial class TranslationWindow : Window
                 var resultFadeIn = (Storyboard)FindResource("ResultFadeInStoryboard");
                 resultFadeIn.Begin(this);
 
-                _currentSourceLanguage = result.DetectedSourceLanguage;
-                if (result.DetectedSourceLanguage != "unknown" && result.DetectedSourceLanguage != "auto")
+                // Use local detector for display (Google's DetectedSourceLanguage is unreliable)
+                var localDetected = LanguageDetector.DetectSourceLanguage(text);
+                _currentSourceLanguage = localDetected != "unknown" ? localDetected : result.DetectedSourceLanguage;
+                DebugLog($"GoogleDetected='{result.DetectedSourceLanguage}' LocalDetected='{localDetected}' Using='{_currentSourceLanguage}'");
+
+                // Update source combo to show detected language (if auto mode)
+                if (GetSelectedSourceCode() == "auto")
                 {
-                    SourceLanguageLabel.Text = $"{GetLanguageName(result.DetectedSourceLanguage)} - 已偵測";
+                    var langName = GetLanguageName(_currentSourceLanguage);
+                    if (SourceLanguageCombo.Items[0] is System.Windows.Controls.ComboBoxItem autoItem)
+                    {
+                        autoItem.Content = $"自動偵測 ({langName})";
+                    }
                 }
 
                 _historyService.Add(new TranslationHistoryEntry(
@@ -314,7 +428,10 @@ public partial class TranslationWindow : Window
         InputTextBox.Text = "";
         TranslationTextBox.Text = "";
         ErrorPanel.Visibility = Visibility.Collapsed;
-        SourceLanguageLabel.Text = "偵測中...";
+        SetSourceLanguageCombo("auto");
+        // Reset auto label
+        if (SourceLanguageCombo.Items[0] is System.Windows.Controls.ComboBoxItem autoItem)
+            autoItem.Content = "自動偵測";
     }
 
     // Copy translation result
@@ -333,6 +450,77 @@ public partial class TranslationWindow : Window
             _ = TranslateAsync(_currentSourceText, _currentTargetLanguage);
     }
 
+    // Swap source ↔ target languages and text
+    private void SwapLanguages_Click(object sender, RoutedEventArgs e)
+    {
+        var translatedText = TranslationTextBox.Text;
+        if (string.IsNullOrWhiteSpace(translatedText)) return;
+
+        // Get current selections
+        var oldSourceCode = GetSelectedSourceCode();
+        var oldTargetCode = GetSelectedTargetCode();
+
+        // If source was "auto", use the detected source language instead
+        var actualSourceCode = oldSourceCode == "auto" ? _currentSourceLanguage : oldSourceCode;
+        if (string.IsNullOrEmpty(actualSourceCode) || actualSourceCode == "unknown")
+            actualSourceCode = "en";
+
+        // Swap: old target → new source, old source → new target
+        SetSourceLanguageCombo(oldTargetCode);
+        SetTargetLanguageCombo(actualSourceCode);
+
+        // Reset auto-detect label if it was showing
+        if (SourceLanguageCombo.Items[0] is System.Windows.Controls.ComboBoxItem autoItem)
+            autoItem.Content = "自動偵測";
+
+        // Move translated text to input
+        _suppressLanguageChangeEvent = true;
+        InputTextBox.Text = translatedText;
+        _suppressLanguageChangeEvent = false;
+
+        // Translate with swapped settings
+        _currentSourceText = translatedText;
+        _currentTargetLanguage = actualSourceCode;
+        _ = TranslateAsync(translatedText, actualSourceCode);
+    }
+
+    // Language combo selection changes
+    private void SourceLanguageCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_suppressLanguageChangeEvent) return;
+        // Reset auto-detect label
+        if (SourceLanguageCombo.Items[0] is System.Windows.Controls.ComboBoxItem autoItem)
+            autoItem.Content = "自動偵測";
+
+        RetranslateWithCurrentSettings();
+    }
+
+    private void TargetLanguageCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_suppressLanguageChangeEvent) return;
+        RetranslateWithCurrentSettings();
+    }
+
+    private void RetranslateWithCurrentSettings()
+    {
+        var text = InputTextBox.Text;
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        var sourceCode = GetSelectedSourceCode();
+        var targetCode = GetSelectedTargetCode();
+
+        // If source is auto, use LanguageDetector
+        if (sourceCode == "auto")
+        {
+            targetCode = LanguageDetector.GetTargetLanguage(text);
+            SetTargetLanguageCombo(targetCode);
+        }
+
+        _currentSourceText = text;
+        _currentTargetLanguage = targetCode;
+        _ = TranslateAsync(text, targetCode);
+    }
+
     // Input debounce for re-translation on edit
     private void InputTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
@@ -347,8 +535,18 @@ public partial class TranslationWindow : Window
         if (!string.IsNullOrWhiteSpace(newText) && newText != _currentSourceText)
         {
             _currentSourceText = newText;
-            _currentTargetLanguage = LanguageDetector.GetTargetLanguage(newText);
-            TargetLanguageLabel.Text = _currentTargetLanguage == "en" ? "English" : "繁體中文";
+
+            var sourceCode = GetSelectedSourceCode();
+            if (sourceCode == "auto")
+            {
+                _currentTargetLanguage = LanguageDetector.GetTargetLanguage(newText);
+                SetTargetLanguageCombo(_currentTargetLanguage);
+            }
+            else
+            {
+                _currentTargetLanguage = GetSelectedTargetCode();
+            }
+
             _ = TranslateAsync(newText, _currentTargetLanguage);
         }
     }
@@ -386,6 +584,15 @@ public partial class TranslationWindow : Window
         "ar" => "العربية",
         "th" => "ไทย",
         "vi" => "Tiếng Việt",
+        "hi" => "हिन्दी",
+        "it" => "Italiano",
+        "nl" => "Nederlands",
+        "pl" => "Polski",
+        "tr" => "Türkçe",
+        "id" => "Bahasa Indonesia",
+        "ms" => "Bahasa Melayu",
+        "uk" => "Українська",
+        "sv" => "Svenska",
         _ => code
     };
 
