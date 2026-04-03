@@ -290,8 +290,20 @@ Copyright (c) 2026 **Ramen Cat Studio**. All rights reserved.
 
 ---
 
+## ☕ 支持開發
+
+如果這個工具對你有幫助，歡迎請我喝杯咖啡！
+
+<a href="https://buymeacoffee.com/RamenCatStudio" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="200">
+</a>
+
+---
+
 <div align="center">
 
 Made with ❤️ by [Ramen Cat Studio](https://github.com/air92316)
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/RamenCatStudio)
 
 </div>
