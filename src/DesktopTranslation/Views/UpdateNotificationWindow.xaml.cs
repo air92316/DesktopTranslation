@@ -36,6 +36,8 @@ public partial class UpdateNotificationWindow : Window
             var transform = new System.Windows.Media.ScaleTransform(scale, scale);
             if (Content is FrameworkElement root)
                 root.LayoutTransform = transform;
+            Width *= scale;
+            Height *= scale;
         }
     }
 

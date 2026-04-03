@@ -147,6 +147,10 @@ public class UpdateService
 
             progress?.Report(1.0);
 
+            // Flush and close streams before validating file size
+            await fileStream.FlushAsync(ct);
+            fileStream.Close();
+
             // Validate downloaded file size
             var fileInfo = new FileInfo(tempPath);
             if (info.FileSizeBytes > 0 && fileInfo.Length != info.FileSizeBytes)
