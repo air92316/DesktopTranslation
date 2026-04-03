@@ -14,4 +14,8 @@ public record AppSettings
     public int DoubleTapInterval { get; init; } = 400;
     public double TtsSpeed { get; init; } = 1.0;
     public string Theme { get; init; } = "system";
+    public bool AutoUpdateEnabled { get; init; } = true;
+    public int UpdateCheckIntervalHours { get; init; } = 24;
+    public string SkippedVersion { get; init; } = "";
+    public DateTime LastUpdateCheck { get; init; } = DateTime.MinValue;
 }

@@ -11,6 +11,7 @@ public class TrayIconManager : IDisposable
     private readonly Action _onOpenSettings;
     private readonly Action<string> _onSwitchEngine;
     private readonly Action<bool> _onToggleAutoStart;
+    private readonly Action _onCheckUpdate;
     private readonly Action _onExit;
 
     public TrayIconManager(
@@ -18,6 +19,7 @@ public class TrayIconManager : IDisposable
         Action onOpenSettings,
         Action<string> onSwitchEngine,
         Action<bool> onToggleAutoStart,
+        Action onCheckUpdate,
         Action onExit,
         bool autoStartEnabled,
         string currentEngine)
@@ -26,6 +28,7 @@ public class TrayIconManager : IDisposable
         _onOpenSettings = onOpenSettings;
         _onSwitchEngine = onSwitchEngine;
         _onToggleAutoStart = onToggleAutoStart;
+        _onCheckUpdate = onCheckUpdate;
         _onExit = onExit;
 
         _trayIcon = new WinForms.NotifyIcon
@@ -82,10 +85,14 @@ public class TrayIconManager : IDisposable
         menu.Items.Add(autoStartItem);
 
         menu.Items.Add("設定", null, (_, _) => _onOpenSettings());
+        menu.Items.Add("檢查更新", null, (_, _) => _onCheckUpdate());
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add("關於", null, (_, _) =>
+        {
+            var version = typeof(App).Assembly.GetName().Version;
+            var versionStr = $"v{version?.Major}.{version?.Minor}.{version?.Build}";
             System.Windows.MessageBox.Show(
-                "DesktopTranslation v1.1.0\n" +
+                $"DesktopTranslation {versionStr}\n" +
                 "─────────────────────────\n" +
                 "桌面即時翻譯工具\n\n" +
                 "雙擊 Ctrl+C 即可將選取文字快速翻譯。\n" +
@@ -95,7 +102,8 @@ public class TrayIconManager : IDisposable
                 "授權條款：MIT License\n" +
                 "技術棧：C# / .NET 8 / WPF\n\n" +
                 "© 2026 Ramen Cat Studio. All rights reserved.",
-                "關於 DesktopTranslation", MessageBoxButton.OK, MessageBoxImage.Information));
+                "關於 DesktopTranslation", MessageBoxButton.OK, MessageBoxImage.Information);
+        });
         menu.Items.Add("結束", null, (_, _) => _onExit());
 
         return menu;

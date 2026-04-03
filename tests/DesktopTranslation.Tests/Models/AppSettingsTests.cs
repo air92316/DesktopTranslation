@@ -22,6 +22,17 @@ public class AppSettingsTests
     }
 
     [Fact]
+    public void Default_Update_Settings_Are_Correct()
+    {
+        var settings = new AppSettings();
+
+        Assert.True(settings.AutoUpdateEnabled);
+        Assert.Equal(24, settings.UpdateCheckIntervalHours);
+        Assert.Equal("", settings.SkippedVersion);
+        Assert.Equal(DateTime.MinValue, settings.LastUpdateCheck);
+    }
+
+    [Fact]
     public void Clone_Creates_Independent_Copy()
     {
         var original = new AppSettings { Engine = "google" };

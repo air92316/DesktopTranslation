@@ -95,6 +95,7 @@ public class SettingsService
             Engine = ValidEngines.Contains(s.Engine) ? s.Engine : defaults.Engine,
             Theme = ValidThemes.Contains(s.Theme) ? s.Theme : defaults.Theme,
             LlmProvider = ValidProviders.Contains(s.LlmProvider) ? s.LlmProvider : defaults.LlmProvider,
+            UpdateCheckIntervalHours = Math.Clamp(s.UpdateCheckIntervalHours, 1, 168),
         };
     }
 }

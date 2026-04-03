@@ -49,6 +49,7 @@ public partial class SettingsWindow : Window
         CbProvider.SelectedIndex = settings.LlmProvider == "openai" ? 1 : 0;
         TxtApiKey.Password = settings.ApiKey;
         ChkAutoStart.IsChecked = settings.AutoStart;
+        ChkAutoUpdate.IsChecked = settings.AutoUpdateEnabled;
         SliderInterval.Value = settings.DoubleTapInterval;
         SliderSpeed.Value = settings.TtsSpeed;
 
@@ -72,6 +73,7 @@ public partial class SettingsWindow : Window
             LlmProvider = CbProvider.SelectedIndex == 1 ? "openai" : "claude",
             ApiKey = TxtApiKey.Password,
             AutoStart = ChkAutoStart.IsChecked == true,
+            AutoUpdateEnabled = ChkAutoUpdate.IsChecked == true,
             DoubleTapInterval = (int)SliderInterval.Value,
             TtsSpeed = Math.Round(SliderSpeed.Value, 1),
             Theme = themeTag

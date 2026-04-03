@@ -16,6 +16,7 @@ public partial class App : System.Windows.Application
     private TtsService _ttsService = null!;
     private HistoryService _historyService = null!;
     private TrayIconManager _trayIconManager = null!;
+    private UpdateService _updateService = null!;
     private TranslationWindow? _translationWindow;
     private AppSettings _settings = null!;
 
@@ -71,12 +72,18 @@ public partial class App : System.Windows.Application
             _hotkeyService.Start();
             Debug.WriteLine("[STARTUP] Hotkey service started");
 
+            // Update service
+            _updateService = new UpdateService();
+            _updateService.CleanupOldInstallers();
+            Debug.WriteLine("[STARTUP] Update service ready");
+
             // Tray icon
             _trayIconManager = new TrayIconManager(
                 onShowWindow: ShowTranslationWindow,
                 onOpenSettings: OpenSettings,
                 onSwitchEngine: SwitchEngine,
                 onToggleAutoStart: ToggleAutoStart,
+                onCheckUpdate: CheckForUpdateManual,
                 onExit: ExitApp,
                 autoStartEnabled: _settings.AutoStart,
                 currentEngine: _settings.Engine);
@@ -97,6 +104,16 @@ public partial class App : System.Windows.Application
             hiddenWindow.Hide();
             MainWindow = hiddenWindow;
             Debug.WriteLine("[STARTUP] Hidden message pump window created — app is ready!");
+
+            // Background update check
+            if (_settings.AutoUpdateEnabled)
+            {
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(5));
+                    await Dispatcher.InvokeAsync(() => CheckForUpdateInBackground());
+                });
+            }
         }
         catch (Exception ex)
         {
@@ -213,6 +230,87 @@ public partial class App : System.Windows.Application
 
         // Disposal happens in OnExit — just trigger shutdown
         Shutdown();
+    }
+
+    private async void CheckForUpdateInBackground()
+    {
+        try
+        {
+            var settings = _settingsService.Load();
+            var elapsed = DateTime.Now - settings.LastUpdateCheck;
+            if (elapsed.TotalHours < settings.UpdateCheckIntervalHours)
+            {
+                Debug.WriteLine("[UPDATE] Skipped — last check was too recent");
+                return;
+            }
+
+            var currentVersion = GetCurrentVersion();
+            var updateInfo = await _updateService.CheckForUpdateAsync(currentVersion);
+
+            _settingsService.Save(settings with { LastUpdateCheck = DateTime.Now });
+
+            if (updateInfo is null)
+            {
+                Debug.WriteLine("[UPDATE] Already up to date");
+                return;
+            }
+
+            // Skip if user chose to skip this version
+            var latestSettings = _settingsService.Load();
+            var skippedTag = latestSettings.SkippedVersion.TrimStart('v', 'V');
+            var newTag = updateInfo.Version.TrimStart('v', 'V');
+            if (string.Equals(skippedTag, newTag, StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.WriteLine($"[UPDATE] Version {updateInfo.Version} is skipped by user");
+                return;
+            }
+
+            var window = new UpdateNotificationWindow(_updateService, updateInfo, _settingsService);
+            window.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[UPDATE] Background check failed: {ex.Message}");
+        }
+    }
+
+    private async void CheckForUpdateManual()
+    {
+        try
+        {
+            var currentVersion = GetCurrentVersion();
+            var updateInfo = await _updateService.CheckForUpdateAsync(currentVersion);
+
+            var settings = _settingsService.Load();
+            _settingsService.Save(settings with { LastUpdateCheck = DateTime.Now });
+
+            if (updateInfo is null)
+            {
+                System.Windows.MessageBox.Show(
+                    "目前已是最新版本。",
+                    "檢查更新",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var window = new UpdateNotificationWindow(_updateService, updateInfo, _settingsService);
+            window.ShowDialog();
+        }
+        catch (Exception ex)
+        {
+            System.Windows.MessageBox.Show(
+                $"檢查更新失敗：{ex.Message}",
+                "更新錯誤",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+    }
+
+    private static string GetCurrentVersion()
+    {
+        var version = typeof(App).Assembly.GetName().Version;
+        return $"{version?.Major}.{version?.Minor}.{version?.Build}";
     }
 
     public void ApplyAppTheme(string themeSetting)
