@@ -15,23 +15,11 @@
 
 ## 📸 介面預覽
 
-### 淺色主題
-
 <p align="center">
-  <img src="docs/images/preview-light.svg" alt="DesktopTranslation 淺色主題" width="680">
+  <img src="docs/images/preview-dark.png" alt="DesktopTranslation 深色主題" width="680">
 </p>
 
-### 深色主題
-
-<p align="center">
-  <img src="docs/images/preview-dark.svg" alt="DesktopTranslation 深色主題" width="680">
-</p>
-
-### 設定視窗
-
-<p align="center">
-  <img src="docs/images/settings-light.svg" alt="設定視窗" width="380">
-</p>
+<p align="center"><em>深色主題 — 日式極簡 Ai-iro 藍染配色</em></p>
 
 ### 設計風格
 
