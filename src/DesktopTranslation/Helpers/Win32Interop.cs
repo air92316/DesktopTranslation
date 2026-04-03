@@ -10,6 +10,8 @@ public static class Win32Interop
     public const int WM_KEYDOWN = 0x0100;
     public const int WM_SYSKEYDOWN = 0x0104;
     public const int VK_CONTROL = 0x11;
+    public const int VK_LCONTROL = 0xA2;
+    public const int VK_RCONTROL = 0xA3;
     public const int VK_C = 0x43;
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -24,6 +26,26 @@ public static class Win32Interop
 
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern IntPtr GetModuleHandle(string? lpModuleName);
+
+    // DPI
+    [DllImport("user32.dll")]
+    public static extern IntPtr GetDC(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+    [DllImport("gdi32.dll")]
+    public static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
+    public const int LOGPIXELSX = 88;
+
+    public static double GetSystemDpiScale()
+    {
+        var hdc = GetDC(IntPtr.Zero);
+        var dpi = GetDeviceCaps(hdc, LOGPIXELSX);
+        ReleaseDC(IntPtr.Zero, hdc);
+        return dpi / 96.0;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct KBDLLHOOKSTRUCT

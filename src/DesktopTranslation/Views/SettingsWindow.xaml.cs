@@ -17,6 +17,20 @@ public partial class SettingsWindow : Window
         _settingsService = settingsService;
         _onSettingsApplied = onSettingsApplied;
         LoadSettings();
+        Loaded += (_, _) => ApplyDpiScaling();
+    }
+
+    private void ApplyDpiScaling()
+    {
+        var scale = Helpers.Win32Interop.GetSystemDpiScale();
+        if (scale > 1.05)
+        {
+            var transform = new System.Windows.Media.ScaleTransform(scale, scale);
+            if (Content is FrameworkElement root)
+                root.LayoutTransform = transform;
+            Width *= scale;
+            Height *= scale;
+        }
     }
 
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

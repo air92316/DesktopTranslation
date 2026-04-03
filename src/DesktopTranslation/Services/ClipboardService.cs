@@ -11,10 +11,10 @@ public class ClipboardService
     {
         try
         {
-            if (!Clipboard.ContainsText())
+            if (!System.Windows.Clipboard.ContainsText())
                 return null;
 
-            var text = Clipboard.GetText();
+            var text = System.Windows.Clipboard.GetText();
             if (string.IsNullOrEmpty(text))
                 return null;
 

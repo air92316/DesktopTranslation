@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using DesktopTranslation.Helpers;
 using DesktopTranslation.Models;
@@ -6,7 +8,7 @@ using DesktopTranslation.Views;
 
 namespace DesktopTranslation;
 
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
     private SettingsService _settingsService = null!;
     private HotkeyService _hotkeyService = null!;
@@ -22,54 +24,132 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Initialize services
-        _settingsService = new SettingsService();
-        _settings = _settingsService.Load();
-
-        // Apply theme at app level
-        ApplyAppTheme(_settings.Theme);
-
-        _clipboardService = new ClipboardService();
-        _historyService = new HistoryService();
-        _ttsService = new TtsService();
-        _ttsService.SetSpeed(_settings.TtsSpeed);
-
-        // Translation engines
-        _translationService = new TranslationService();
-        _translationService.RegisterEngine("google", new GoogleTranslateEngine());
-
-        if (!string.IsNullOrEmpty(_settings.ApiKey))
+        // Global exception handlers for debugging
+        DispatcherUnhandledException += (s, args) =>
         {
-            _translationService.RegisterEngine("llm",
-                new LlmTranslateEngine(_settings.LlmProvider, _settings.ApiKey));
+            Debug.WriteLine($"[UNHANDLED UI] {args.Exception}");
+            File.AppendAllText(
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] UI Exception: {args.Exception}\n\n");
+            args.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (s, args) =>
+        {
+            Debug.WriteLine($"[UNHANDLED] {args.ExceptionObject}");
+            File.AppendAllText(
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] Domain Exception: {args.ExceptionObject}\n\n");
+        };
+
+        try
+        {
+            Debug.WriteLine("[STARTUP] Initializing...");
+
+            // Initialize services
+            _settingsService = new SettingsService();
+            _settings = _settingsService.Load();
+            Debug.WriteLine($"[STARTUP] Settings loaded. Engine={_settings.Engine}, Theme={_settings.Theme}");
+
+            // Apply theme at app level
+            ApplyAppTheme(_settings.Theme);
+            Debug.WriteLine("[STARTUP] Theme applied");
+
+            _clipboardService = new ClipboardService();
+            _historyService = new HistoryService();
+            _ttsService = new TtsService();
+            _ttsService.SetSpeed(_settings.TtsSpeed);
+
+            // Translation engines
+            _translationService = new TranslationService();
+            _translationService.RegisterEngine("google", new GoogleTranslateEngine());
+
+            if (!string.IsNullOrEmpty(_settings.ApiKey))
+            {
+                _translationService.RegisterEngine("llm",
+                    new LlmTranslateEngine(_settings.LlmProvider, _settings.ApiKey));
+            }
+
+            _translationService.SetEngine(_settings.Engine);
+            Debug.WriteLine("[STARTUP] Translation services ready");
+
+            // Hotkey service
+            _hotkeyService = new HotkeyService(_settings.DoubleTapInterval);
+            _hotkeyService.DoubleCopyDetected += OnDoubleCopyDetected;
+            _hotkeyService.Start();
+            Debug.WriteLine("[STARTUP] Hotkey service started");
+
+            // Tray icon
+            _trayIconManager = new TrayIconManager(
+                onShowWindow: ShowTranslationWindow,
+                onOpenSettings: OpenSettings,
+                onSwitchEngine: SwitchEngine,
+                onToggleAutoStart: ToggleAutoStart,
+                onExit: ExitApp,
+                autoStartEnabled: _settings.AutoStart,
+                currentEngine: _settings.Engine);
+            Debug.WriteLine("[STARTUP] Tray icon created");
+
+            // Create a hidden window to keep the WPF message pump alive.
+            // Without this, WH_KEYBOARD_LL hooks and tray icon clicks won't work
+            // because the Dispatcher has no window to pump messages for.
+            var hiddenWindow = new Window
+            {
+                Width = 0, Height = 0,
+                WindowStyle = WindowStyle.None,
+                ShowInTaskbar = false,
+                ShowActivated = false,
+                Visibility = Visibility.Hidden
+            };
+            hiddenWindow.Show();
+            hiddenWindow.Hide();
+            MainWindow = hiddenWindow;
+            Debug.WriteLine("[STARTUP] Hidden message pump window created — app is ready!");
+
+            // Write startup success to desktop log
+            File.AppendAllText(
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] STARTUP SUCCESS — message pump active\n");
         }
-
-        _translationService.SetEngine(_settings.Engine);
-
-        // Hotkey service
-        _hotkeyService = new HotkeyService(_settings.DoubleTapInterval);
-        _hotkeyService.DoubleCopyDetected += OnDoubleCopyDetected;
-        _hotkeyService.Start();
-
-        // Tray icon
-        _trayIconManager = new TrayIconManager(
-            onShowWindow: ShowTranslationWindow,
-            onOpenSettings: OpenSettings,
-            onSwitchEngine: SwitchEngine,
-            onToggleAutoStart: ToggleAutoStart,
-            onExit: ExitApp,
-            autoStartEnabled: _settings.AutoStart,
-            currentEngine: _settings.Engine);
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[STARTUP FATAL] {ex}");
+            File.WriteAllText(
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log"),
+                $"[{DateTime.Now:HH:mm:ss}] STARTUP FATAL: {ex}\n");
+            System.Windows.MessageBox.Show($"啟動失敗：{ex.Message}", "DesktopTranslation 錯誤",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
+        }
     }
 
     private void OnDoubleCopyDetected()
     {
-        var text = _clipboardService.GetText();
-        if (string.IsNullOrWhiteSpace(text)) return;
+        var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log");
+        try
+        {
+            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] OnDoubleCopyDetected fired\n");
 
-        var targetLanguage = LanguageDetector.GetTargetLanguage(text);
-        EnsureTranslationWindow();
-        _translationWindow!.ShowWithTranslation(text, targetLanguage);
+            var text = _clipboardService.GetText();
+            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Clipboard text: '{text?.Substring(0, Math.Min(text?.Length ?? 0, 50))}'\n");
+
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Text is empty, aborting\n");
+                return;
+            }
+
+            var targetLanguage = LanguageDetector.GetTargetLanguage(text);
+            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Target: {targetLanguage}\n");
+
+            EnsureTranslationWindow();
+            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Showing window...\n");
+            _translationWindow!.ShowWithTranslation(text, targetLanguage);
+            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Window shown OK\n");
+        }
+        catch (Exception ex)
+        {
+            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] ERROR in OnDoubleCopyDetected: {ex}\n");
+        }
     }
 
     private void ShowTranslationWindow()
@@ -124,6 +204,9 @@ public partial class App : Application
 
         // Update tray menu
         _trayIconManager.UpdateMenu(newSettings.AutoStart, newSettings.Engine);
+
+        // Refresh LLM availability in translation window
+        _translationWindow?.RefreshLlmAvailability();
     }
 
     private void SwitchEngine(string engine)

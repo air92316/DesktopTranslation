@@ -1,12 +1,12 @@
+using System.Drawing;
 using System.Windows;
-using System.Windows.Controls;
-using H.NotifyIcon;
+using WinForms = System.Windows.Forms;
 
 namespace DesktopTranslation.Views;
 
 public class TrayIconManager : IDisposable
 {
-    private readonly TaskbarIcon _trayIcon;
+    private readonly WinForms.NotifyIcon _trayIcon;
     private readonly Action _onShowWindow;
     private readonly Action _onOpenSettings;
     private readonly Action<string> _onSwitchEngine;
@@ -28,81 +28,95 @@ public class TrayIconManager : IDisposable
         _onToggleAutoStart = onToggleAutoStart;
         _onExit = onExit;
 
-        _trayIcon = new TaskbarIcon
+        _trayIcon = new WinForms.NotifyIcon
         {
-            ToolTipText = "DesktopTranslation",
-            ContextMenu = BuildContextMenu(autoStartEnabled, currentEngine)
+            Icon = CreateTrayIcon(),
+            Text = "DesktopTranslation — 雙擊 Ctrl+C 翻譯",
+            Visible = true,
+            ContextMenuStrip = BuildContextMenu(autoStartEnabled, currentEngine)
         };
 
-        _trayIcon.TrayLeftMouseDown += (_, _) => _onShowWindow();
+        _trayIcon.MouseClick += (_, e) =>
+        {
+            if (e.Button == WinForms.MouseButtons.Left)
+                _onShowWindow();
+        };
+
+        var logPath = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log");
+        System.IO.File.AppendAllText(logPath,
+            $"[{DateTime.Now:HH:mm:ss}] TRAY ICON created. Visible={_trayIcon.Visible}\n");
     }
 
     public void UpdateMenu(bool autoStartEnabled, string currentEngine)
     {
-        _trayIcon.ContextMenu = BuildContextMenu(autoStartEnabled, currentEngine);
+        _trayIcon.ContextMenuStrip = BuildContextMenu(autoStartEnabled, currentEngine);
     }
 
-    private ContextMenu BuildContextMenu(bool autoStartEnabled, string currentEngine)
+    private WinForms.ContextMenuStrip BuildContextMenu(bool autoStartEnabled, string currentEngine)
     {
-        var menu = new ContextMenu();
+        var menu = new WinForms.ContextMenuStrip();
 
-        var showItem = new MenuItem { Header = "顯示主視窗" };
-        showItem.Click += (_, _) => _onShowWindow();
-        menu.Items.Add(showItem);
+        menu.Items.Add("顯示主視窗", null, (_, _) => _onShowWindow());
+        menu.Items.Add(new WinForms.ToolStripSeparator());
 
-        menu.Items.Add(new Separator());
-
-        var engineMenu = new MenuItem { Header = "翻譯引擎" };
-        var googleItem = new MenuItem
+        var googleItem = new WinForms.ToolStripMenuItem("Google")
         {
-            Header = "Google",
-            IsCheckable = true,
-            IsChecked = currentEngine == "google"
+            Checked = currentEngine == "google"
         };
         googleItem.Click += (_, _) => _onSwitchEngine("google");
-        var llmItem = new MenuItem
+
+        var llmItem = new WinForms.ToolStripMenuItem("LLM")
         {
-            Header = "LLM",
-            IsCheckable = true,
-            IsChecked = currentEngine == "llm"
+            Checked = currentEngine == "llm"
         };
         llmItem.Click += (_, _) => _onSwitchEngine("llm");
-        engineMenu.Items.Add(googleItem);
-        engineMenu.Items.Add(llmItem);
+
+        var engineMenu = new WinForms.ToolStripMenuItem("翻譯引擎");
+        engineMenu.DropDownItems.Add(googleItem);
+        engineMenu.DropDownItems.Add(llmItem);
         menu.Items.Add(engineMenu);
 
-        menu.Items.Add(new Separator());
+        menu.Items.Add(new WinForms.ToolStripSeparator());
 
-        var autoStartItem = new MenuItem
+        var autoStartItem = new WinForms.ToolStripMenuItem("開機自啟動")
         {
-            Header = "開機自啟動",
-            IsCheckable = true,
-            IsChecked = autoStartEnabled
+            Checked = autoStartEnabled
         };
         autoStartItem.Click += (_, _) => _onToggleAutoStart(!autoStartEnabled);
         menu.Items.Add(autoStartItem);
 
-        var settingsItem = new MenuItem { Header = "設定" };
-        settingsItem.Click += (_, _) => _onOpenSettings();
-        menu.Items.Add(settingsItem);
-
-        menu.Items.Add(new Separator());
-
-        var aboutItem = new MenuItem { Header = "關於" };
-        aboutItem.Click += (_, _) => MessageBox.Show(
-            "DesktopTranslation v1.0\n雙擊 Ctrl+C 快速翻譯",
-            "關於", MessageBoxButton.OK, MessageBoxImage.Information);
-        menu.Items.Add(aboutItem);
-
-        var exitItem = new MenuItem { Header = "結束" };
-        exitItem.Click += (_, _) => _onExit();
-        menu.Items.Add(exitItem);
+        menu.Items.Add("設定", null, (_, _) => _onOpenSettings());
+        menu.Items.Add(new WinForms.ToolStripSeparator());
+        menu.Items.Add("關於", null, (_, _) =>
+            System.Windows.MessageBox.Show("DesktopTranslation v1.0\n雙擊 Ctrl+C 快速翻譯",
+                "關於", MessageBoxButton.OK, MessageBoxImage.Information));
+        menu.Items.Add("結束", null, (_, _) => _onExit());
 
         return menu;
     }
 
+    private static Icon CreateTrayIcon()
+    {
+        using var bmp = new Bitmap(32, 32);
+        using var g = Graphics.FromImage(bmp);
+        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        g.Clear(Color.FromArgb(74, 111, 165)); // #4A6FA5 Ai-iro
+        using var font = new Font(new System.Drawing.FontFamily("Segoe UI"), 18, System.Drawing.FontStyle.Bold);
+        using var sf = new StringFormat
+        {
+            Alignment = StringAlignment.Center,
+            LineAlignment = StringAlignment.Center
+        };
+        g.DrawString("T", font, Brushes.White, new RectangleF(0, 0, 32, 32), sf);
+
+        var handle = bmp.GetHicon();
+        return Icon.FromHandle(handle);
+    }
+
     public void Dispose()
     {
+        _trayIcon.Visible = false;
         _trayIcon.Dispose();
     }
 }

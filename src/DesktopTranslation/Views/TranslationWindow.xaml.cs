@@ -45,11 +45,36 @@ public partial class TranslationWindow : Window
         SizeChanged += OnSizeChanged;
     }
 
+    private bool _llmAvailable;
+
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         var settings = _settingsService.Load();
         RestorePosition(settings);
+        _llmAvailable = !string.IsNullOrEmpty(settings.ApiKey);
         UpdateEngineButtons(settings.Engine);
+        ApplyDpiScaling();
+    }
+
+    private void ApplyDpiScaling()
+    {
+        var scale = Helpers.Win32Interop.GetSystemDpiScale();
+        if (scale > 1.05) // Only apply if scaling > 105%
+        {
+            var transform = new ScaleTransform(scale, scale);
+            MainBorder.LayoutTransform = transform;
+            Width *= scale;
+            Height *= scale;
+            MinWidth = 520 * scale;
+            MinHeight = 280 * scale;
+        }
+    }
+
+    public void RefreshLlmAvailability()
+    {
+        var settings = _settingsService.Load();
+        _llmAvailable = !string.IsNullOrEmpty(settings.ApiKey);
+        UpdateEngineButtons(_translationService.CurrentEngineName);
     }
 
     private void OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -77,63 +102,105 @@ public partial class TranslationWindow : Window
         _ = TranslateAsync(text, targetLanguage);
     }
 
+    private static void DebugLog(string msg)
+    {
+        try
+        {
+            var logPath = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log");
+            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] {msg}\n");
+        }
+        catch { /* ignore logging errors */ }
+    }
+
     private async Task TranslateAsync(string text, string targetLanguage)
     {
-        if (_isTranslating) return;
+        DebugLog($"TranslateAsync called: text='{text.Substring(0, Math.Min(text.Length, 30))}' target={targetLanguage}");
+
+        if (_isTranslating)
+        {
+            DebugLog("Already translating, skipping");
+            return;
+        }
         _isTranslating = true;
 
-        ShowLoading(true);
-        ErrorPanel.Visibility = Visibility.Collapsed;
-        TranslationTextBox.Text = "";
-
-        var result = await _translationService.TranslateAsync(text, targetLanguage);
-
-        ShowLoading(false);
-        _isTranslating = false;
-
-        if (result.IsSuccess)
+        try
         {
-            TranslationTextBox.Visibility = Visibility.Visible;
-            TranslationTextBox.Text = result.TranslatedText;
+            DebugLog("ShowLoading...");
+            ShowLoading(true);
+            ErrorPanel.Visibility = Visibility.Collapsed;
+            TranslationTextBox.Text = "";
+            DebugLog($"Calling TranslationService (engine={_translationService.CurrentEngineName})...");
+            var result = await _translationService.TranslateAsync(text, targetLanguage);
+            DebugLog($"Result: success={result.IsSuccess}, text='{result.TranslatedText?.Substring(0, Math.Min(result.TranslatedText?.Length ?? 0, 50))}', error={result.ErrorMessage}");
 
-            var resultFadeIn = (Storyboard)FindResource("ResultFadeInStoryboard");
-            resultFadeIn.Begin(this);
+            ShowLoading(false);
+            _isTranslating = false;
 
-            _currentSourceLanguage = result.DetectedSourceLanguage;
-            if (result.DetectedSourceLanguage != "unknown" && result.DetectedSourceLanguage != "auto")
+            if (result.IsSuccess)
             {
-                SourceLanguageLabel.Text = $"{result.DetectedSourceLanguage} - 已偵測";
-            }
+                TranslationTextBox.Visibility = Visibility.Visible;
+                TranslationTextBox.Text = result.TranslatedText;
 
-            _historyService.Add(new TranslationHistoryEntry(
-                text, result.TranslatedText,
-                result.DetectedSourceLanguage, targetLanguage,
-                _translationService.CurrentEngineName,
-                DateTime.UtcNow));
-            UpdateHistoryLabel();
+                var resultFadeIn = (Storyboard)FindResource("ResultFadeInStoryboard");
+                resultFadeIn.Begin(this);
+
+                _currentSourceLanguage = result.DetectedSourceLanguage;
+                if (result.DetectedSourceLanguage != "unknown" && result.DetectedSourceLanguage != "auto")
+                {
+                    SourceLanguageLabel.Text = $"{GetLanguageName(result.DetectedSourceLanguage)} - 已偵測";
+                }
+
+                _historyService.Add(new TranslationHistoryEntry(
+                    text, result.TranslatedText,
+                    result.DetectedSourceLanguage, targetLanguage,
+                    _translationService.CurrentEngineName,
+                    DateTime.UtcNow));
+                UpdateHistoryLabel();
+            }
+            else
+            {
+                TranslationTextBox.Visibility = Visibility.Collapsed;
+                ErrorPanel.Visibility = Visibility.Visible;
+                ErrorText.Text = result.ErrorMessage ?? "翻譯失敗";
+                DebugLog($"Translation FAILED: {result.ErrorMessage}");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            TranslationTextBox.Visibility = Visibility.Collapsed;
+            ShowLoading(false);
+            _isTranslating = false;
+            DebugLog($"TranslateAsync EXCEPTION: {ex}");
             ErrorPanel.Visibility = Visibility.Visible;
-            ErrorText.Text = result.ErrorMessage ?? "翻譯失敗";
+            ErrorText.Text = "翻譯時發生錯誤";
         }
     }
+
+    private Storyboard? _shimmerStoryboard;
 
     private void ShowLoading(bool show)
     {
         ShimmerPanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
         TranslationTextBox.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
 
-        if (show)
+        try
         {
-            var shimmer = (Storyboard)FindResource("ShimmerStoryboard");
-            shimmer.Begin(this, true);
+            if (show)
+            {
+                // Use Begin() without containingObject to avoid NameScope lookup issues
+                _shimmerStoryboard = (Storyboard)FindResource("ShimmerStoryboard");
+                _shimmerStoryboard.Begin(ShimmerPanel, true);
+            }
+            else
+            {
+                _shimmerStoryboard?.Stop(ShimmerPanel);
+                _shimmerStoryboard = null;
+            }
         }
-        else
+        catch (Exception ex)
         {
-            var shimmer = (Storyboard)FindResource("ShimmerStoryboard");
-            shimmer.Stop(this);
+            // Don't let shimmer animation failure block translation
+            DebugLog($"Shimmer animation error (non-fatal): {ex.Message}");
         }
     }
 
@@ -155,6 +222,13 @@ public partial class TranslationWindow : Window
 
     private void EngineLlm_Click(object sender, RoutedEventArgs e)
     {
+        if (!_llmAvailable)
+        {
+            System.Windows.MessageBox.Show(
+                "請先在「設定」中輸入 API Key 才能使用 LLM 翻譯。\n\n右鍵系統匣圖示 → 設定",
+                "LLM 未設定", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
         _translationService.SetEngine("llm");
         UpdateEngineButtons("llm");
         if (!string.IsNullOrEmpty(_currentSourceText))
@@ -163,19 +237,25 @@ public partial class TranslationWindow : Window
 
     private void UpdateEngineButtons(string engine)
     {
+        // LLM button disabled state when no API key
+        BtnLlm.IsEnabled = _llmAvailable;
+        BtnLlm.Opacity = _llmAvailable ? 1.0 : 0.4;
+        if (!_llmAvailable && engine == "llm")
+            engine = "google"; // fallback
+
         if (engine == "google")
         {
-            BtnGoogle.Background = (Brush)FindResource("SegmentActiveBrush");
-            BtnGoogle.Foreground = (Brush)FindResource("SegmentActiveTextBrush");
-            BtnLlm.Background = (Brush)FindResource("SegmentInactiveBrush");
-            BtnLlm.Foreground = (Brush)FindResource("SegmentInactiveTextBrush");
+            BtnGoogle.Background = (System.Windows.Media.Brush)FindResource("SegmentActiveBrush");
+            BtnGoogle.Foreground = (System.Windows.Media.Brush)FindResource("SegmentActiveTextBrush");
+            BtnLlm.Background = (System.Windows.Media.Brush)FindResource("SegmentInactiveBrush");
+            BtnLlm.Foreground = (System.Windows.Media.Brush)FindResource("SegmentInactiveTextBrush");
         }
         else
         {
-            BtnLlm.Background = (Brush)FindResource("SegmentActiveBrush");
-            BtnLlm.Foreground = (Brush)FindResource("SegmentActiveTextBrush");
-            BtnGoogle.Background = (Brush)FindResource("SegmentInactiveBrush");
-            BtnGoogle.Foreground = (Brush)FindResource("SegmentInactiveTextBrush");
+            BtnLlm.Background = (System.Windows.Media.Brush)FindResource("SegmentActiveBrush");
+            BtnLlm.Foreground = (System.Windows.Media.Brush)FindResource("SegmentActiveTextBrush");
+            BtnGoogle.Background = (System.Windows.Media.Brush)FindResource("SegmentInactiveBrush");
+            BtnGoogle.Foreground = (System.Windows.Media.Brush)FindResource("SegmentInactiveTextBrush");
         }
     }
 
@@ -242,7 +322,7 @@ public partial class TranslationWindow : Window
     {
         if (!string.IsNullOrEmpty(TranslationTextBox.Text))
         {
-            Clipboard.SetText(TranslationTextBox.Text);
+            System.Windows.Clipboard.SetText(TranslationTextBox.Text);
         }
     }
 
@@ -290,6 +370,24 @@ public partial class TranslationWindow : Window
     {
         HistoryLabel.Text = $"歷史紀錄 ({_historyService.GetAll().Count} 筆)";
     }
+
+    // Language name mapping
+    private static string GetLanguageName(string code) => code.ToLower() switch
+    {
+        "zh" or "zh-cn" or "zh-tw" or "zh-hant" or "zh-hans" => "中文",
+        "en" => "English",
+        "ja" => "日本語",
+        "ko" => "한국어",
+        "fr" => "Français",
+        "de" => "Deutsch",
+        "es" => "Español",
+        "pt" => "Português",
+        "ru" => "Русский",
+        "ar" => "العربية",
+        "th" => "ไทย",
+        "vi" => "Tiếng Việt",
+        _ => code
+    };
 
     // Position persistence
     private void RestorePosition(AppSettings settings)
