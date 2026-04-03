@@ -207,37 +207,18 @@ public partial class TranslationWindow : Window
         _ = TranslateAsync(text, targetLanguage);
     }
 
-    private static void DebugLog(string msg)
-    {
-        try
-        {
-            var logPath = System.IO.Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log");
-            System.IO.File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] {msg}\n");
-        }
-        catch { /* ignore logging errors */ }
-    }
-
     private async Task TranslateAsync(string text, string targetLanguage)
     {
-        DebugLog($"TranslateAsync called: text='{text.Substring(0, Math.Min(text.Length, 30))}' target={targetLanguage}");
-
         if (_isTranslating)
-        {
-            DebugLog("Already translating, skipping");
             return;
-        }
         _isTranslating = true;
 
         try
         {
-            DebugLog("ShowLoading...");
             ShowLoading(true);
             ErrorPanel.Visibility = Visibility.Collapsed;
             TranslationTextBox.Text = "";
-            DebugLog($"Calling TranslationService (engine={_translationService.CurrentEngineName})...");
             var result = await _translationService.TranslateAsync(text, targetLanguage);
-            DebugLog($"Result: success={result.IsSuccess}, text='{result.TranslatedText?.Substring(0, Math.Min(result.TranslatedText?.Length ?? 0, 50))}', error={result.ErrorMessage}");
 
             ShowLoading(false);
             _isTranslating = false;
@@ -253,7 +234,6 @@ public partial class TranslationWindow : Window
                 // Use local detector for display (Google's DetectedSourceLanguage is unreliable)
                 var localDetected = LanguageDetector.DetectSourceLanguage(text);
                 _currentSourceLanguage = localDetected != "unknown" ? localDetected : result.DetectedSourceLanguage;
-                DebugLog($"GoogleDetected='{result.DetectedSourceLanguage}' LocalDetected='{localDetected}' Using='{_currentSourceLanguage}'");
 
                 // Update source combo to show detected language (if auto mode)
                 if (GetSelectedSourceCode() == "auto")
@@ -277,14 +257,12 @@ public partial class TranslationWindow : Window
                 TranslationTextBox.Visibility = Visibility.Collapsed;
                 ErrorPanel.Visibility = Visibility.Visible;
                 ErrorText.Text = result.ErrorMessage ?? "翻譯失敗";
-                DebugLog($"Translation FAILED: {result.ErrorMessage}");
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             ShowLoading(false);
             _isTranslating = false;
-            DebugLog($"TranslateAsync EXCEPTION: {ex}");
             ErrorPanel.Visibility = Visibility.Visible;
             ErrorText.Text = "翻譯時發生錯誤";
         }
@@ -311,10 +289,9 @@ public partial class TranslationWindow : Window
                 _shimmerStoryboard = null;
             }
         }
-        catch (Exception ex)
+        catch
         {
             // Don't let shimmer animation failure block translation
-            DebugLog($"Shimmer animation error (non-fatal): {ex.Message}");
         }
     }
 

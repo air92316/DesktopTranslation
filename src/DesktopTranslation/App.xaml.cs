@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.IO;
 using System.Windows;
 using DesktopTranslation.Helpers;
 using DesktopTranslation.Models;
@@ -24,21 +23,15 @@ public partial class App : System.Windows.Application
     {
         base.OnStartup(e);
 
-        // Global exception handlers for debugging
+        // Global exception handlers
         DispatcherUnhandledException += (s, args) =>
         {
             Debug.WriteLine($"[UNHANDLED UI] {args.Exception}");
-            File.AppendAllText(
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log"),
-                $"[{DateTime.Now:HH:mm:ss}] UI Exception: {args.Exception}\n\n");
             args.Handled = true;
         };
         AppDomain.CurrentDomain.UnhandledException += (s, args) =>
         {
             Debug.WriteLine($"[UNHANDLED] {args.ExceptionObject}");
-            File.AppendAllText(
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log"),
-                $"[{DateTime.Now:HH:mm:ss}] Domain Exception: {args.ExceptionObject}\n\n");
         };
 
         try
@@ -104,18 +97,10 @@ public partial class App : System.Windows.Application
             hiddenWindow.Hide();
             MainWindow = hiddenWindow;
             Debug.WriteLine("[STARTUP] Hidden message pump window created — app is ready!");
-
-            // Write startup success to desktop log
-            File.AppendAllText(
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log"),
-                $"[{DateTime.Now:HH:mm:ss}] STARTUP SUCCESS — message pump active\n");
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[STARTUP FATAL] {ex}");
-            File.WriteAllText(
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log"),
-                $"[{DateTime.Now:HH:mm:ss}] STARTUP FATAL: {ex}\n");
             System.Windows.MessageBox.Show($"啟動失敗：{ex.Message}", "DesktopTranslation 錯誤",
                 MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
@@ -124,32 +109,13 @@ public partial class App : System.Windows.Application
 
     private void OnDoubleCopyDetected()
     {
-        var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log");
-        try
-        {
-            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] OnDoubleCopyDetected fired\n");
+        var text = _clipboardService.GetText();
+        if (string.IsNullOrWhiteSpace(text))
+            return;
 
-            var text = _clipboardService.GetText();
-            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Clipboard text: '{text?.Substring(0, Math.Min(text?.Length ?? 0, 50))}'\n");
-
-            if (string.IsNullOrWhiteSpace(text))
-            {
-                File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Text is empty, aborting\n");
-                return;
-            }
-
-            var targetLanguage = LanguageDetector.GetTargetLanguage(text);
-            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Target: {targetLanguage}\n");
-
-            EnsureTranslationWindow();
-            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Showing window...\n");
-            _translationWindow!.ShowWithTranslation(text, targetLanguage);
-            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] Window shown OK\n");
-        }
-        catch (Exception ex)
-        {
-            File.AppendAllText(logPath, $"[{DateTime.Now:HH:mm:ss}] ERROR in OnDoubleCopyDetected: {ex}\n");
-        }
+        var targetLanguage = LanguageDetector.GetTargetLanguage(text);
+        EnsureTranslationWindow();
+        _translationWindow!.ShowWithTranslation(text, targetLanguage);
     }
 
     private void ShowTranslationWindow()

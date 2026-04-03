@@ -41,11 +41,6 @@ public class TrayIconManager : IDisposable
             if (e.Button == WinForms.MouseButtons.Left)
                 _onShowWindow();
         };
-
-        var logPath = System.IO.Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "dt-debug.log");
-        System.IO.File.AppendAllText(logPath,
-            $"[{DateTime.Now:HH:mm:ss}] TRAY ICON created. Visible={_trayIcon.Visible}\n");
     }
 
     public void UpdateMenu(bool autoStartEnabled, string currentEngine)
