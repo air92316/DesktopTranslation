@@ -9,7 +9,7 @@
 #define MyAppExeName "DesktopTranslation.exe"
 
 ; .NET 8 Desktop Runtime download URL (x64)
-#define DotNetRuntimeURL "https://download.visualstudio.microsoft.com/download/pr/dotnet-runtime-8.0-win-x64.exe"
+#define DotNetRuntimeURL "https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe"
 #define DotNetInstallerName "windowsdesktop-runtime-8.0-win-x64.exe"
 #define DotNetMinVersion "8.0.0"
 
@@ -24,7 +24,6 @@ DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 OutputDir=..\dist
 OutputBaseFilename=DesktopTranslation-v{#MyAppVersion}-Setup
-SetupIconFile=..\src\DesktopTranslation\Assets\tray-icon.ico
 Compression=lzma2
 SolidCompression=yes
 UninstallDisplayIcon={app}\{#MyAppExeName}
@@ -35,8 +34,8 @@ DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
 
 [Languages]
-Name: "tchinese"; MessagesFile: "compiler:Languages\ChineseTraditional.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
 
 [Files]
 Source: "..\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs
