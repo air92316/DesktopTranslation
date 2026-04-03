@@ -186,7 +186,11 @@
                 </Grid>
                 <ProgressBar x:Name="DownloadProgress" Height="6" Minimum="0" Maximum="100"
                              Value="0" Foreground="{DynamicResource AccentPrimaryBrush}"
-                             Background="{DynamicResource BgTertiaryBrush}"/>
+                             Background="{DynamicResource BgTertiaryBrush}"
+                             AutomationProperties.Name="下載進度"/>
+                <Button x:Name="BtnCancelDownload" Content="取消下載" Margin="0,8,0,0"
+                        HorizontalAlignment="Right"
+                        Style="{StaticResource SecondaryButton}" Click="CancelDownload_Click"/>
             </StackPanel>
 
             <!-- Action Buttons -->
@@ -194,8 +198,8 @@
                 <StackPanel x:Name="ButtonPanel" Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button x:Name="BtnSkip" Content="跳過此版本" Margin="0,0,8,0"
                             Style="{StaticResource SecondaryButton}" Click="Skip_Click"/>
-                    <Button x:Name="BtnLater" Content="稍後提醒" Margin="0,0,8,0"
-                            Style="{StaticResource SecondaryButton}" Click="Later_Click"/>
+                    <Button x:Name="BtnLater" Content="下次再說" Margin="0,0,8,0"
+                            Style="{StaticResource SecondaryButton}" Click="Later_Click" IsCancel="True"/>
                     <Button x:Name="BtnUpdate" Content="立即更新" IsDefault="True"
                             Style="{StaticResource PrimaryButton}" Click="Update_Click"/>
                 </StackPanel>

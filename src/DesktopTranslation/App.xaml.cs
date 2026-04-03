@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Http;
 using System.Windows;
 using DesktopTranslation.Helpers;
 using DesktopTranslation.Models;
@@ -18,6 +19,8 @@ public partial class App : System.Windows.Application
     private TrayIconManager _trayIconManager = null!;
     private UpdateService _updateService = null!;
     private TranslationWindow? _translationWindow;
+    private UpdateNotificationWindow? _updateWindow;
+    private bool _updateCheckInProgress;
     private AppSettings _settings = null!;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -236,6 +239,13 @@ public partial class App : System.Windows.Application
     {
         try
         {
+            if (_updateCheckInProgress)
+            {
+                Debug.WriteLine("[UPDATE] Check already in progress, skipping");
+                return;
+            }
+            _updateCheckInProgress = true;
+
             var settings = _settingsService.Load();
             var elapsed = DateTime.Now - settings.LastUpdateCheck;
             if (elapsed.TotalHours < settings.UpdateCheckIntervalHours)
@@ -265,17 +275,32 @@ public partial class App : System.Windows.Application
                 return;
             }
 
-            var window = new UpdateNotificationWindow(_updateService, updateInfo, _settingsService);
-            window.ShowDialog();
+            if (_updateWindow?.IsVisible == true)
+                return;
+            _updateWindow = new UpdateNotificationWindow(_updateService, updateInfo, _settingsService);
+            _updateWindow.Closed += (_, _) => _updateWindow = null;
+            _updateWindow.Show();
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"[UPDATE] Background check failed: {ex.Message}");
         }
+        finally
+        {
+            _updateCheckInProgress = false;
+        }
     }
 
     private async void CheckForUpdateManual()
     {
+        if (_updateCheckInProgress)
+        {
+            System.Windows.MessageBox.Show("正在檢查更新中，請稍候。", "檢查更新",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        _updateCheckInProgress = true;
+
         try
         {
             var currentVersion = GetCurrentVersion();
@@ -294,16 +319,33 @@ public partial class App : System.Windows.Application
                 return;
             }
 
-            var window = new UpdateNotificationWindow(_updateService, updateInfo, _settingsService);
-            window.ShowDialog();
+            if (_updateWindow?.IsVisible == true)
+            {
+                _updateWindow.Activate();
+                return;
+            }
+            _updateWindow = new UpdateNotificationWindow(_updateService, updateInfo, _settingsService);
+            _updateWindow.Closed += (_, _) => _updateWindow = null;
+            _updateWindow.Show();
         }
         catch (Exception ex)
         {
+            var userMessage = ex switch
+            {
+                HttpRequestException => "無法連接到更新伺服器，請檢查網路連線。",
+                TaskCanceledException => "連線逾時，請稍後再試。",
+                _ => $"檢查更新時發生錯誤，請稍後再試。"
+            };
+            Debug.WriteLine($"[UPDATE] Manual check failed: {ex}");
             System.Windows.MessageBox.Show(
-                $"檢查更新失敗：{ex.Message}",
+                userMessage,
                 "更新錯誤",
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
+        }
+        finally
+        {
+            _updateCheckInProgress = false;
         }
     }
 

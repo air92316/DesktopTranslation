@@ -256,6 +256,55 @@ public class SecurityTests : IDisposable
         Assert.True(isBase64, "Stored API key should be base64-encoded (DPAPI encrypted)");
     }
 
+    // --- Settings Validation: UpdateCheckIntervalHours Clamping ---
+
+    [Fact]
+    public void UpdateCheckIntervalHours_Zero_ClampedToMinimum1()
+    {
+        var settings = new AppSettings { UpdateCheckIntervalHours = 0 };
+        _settingsService.Save(settings);
+
+        var loaded = _settingsService.Load();
+
+        Assert.Equal(1, loaded.UpdateCheckIntervalHours);
+    }
+
+    [Fact]
+    public void UpdateCheckIntervalHours_Negative_ClampedToMinimum1()
+    {
+        var settings = new AppSettings { UpdateCheckIntervalHours = -5 };
+        _settingsService.Save(settings);
+
+        var loaded = _settingsService.Load();
+
+        Assert.Equal(1, loaded.UpdateCheckIntervalHours);
+    }
+
+    [Fact]
+    public void UpdateCheckIntervalHours_169_ClampedToMaximum168()
+    {
+        var settings = new AppSettings { UpdateCheckIntervalHours = 169 };
+        _settingsService.Save(settings);
+
+        var loaded = _settingsService.Load();
+
+        Assert.Equal(168, loaded.UpdateCheckIntervalHours);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(24)]
+    [InlineData(168)]
+    public void UpdateCheckIntervalHours_ValidValues_PreservedExactly(int hours)
+    {
+        var settings = new AppSettings { UpdateCheckIntervalHours = hours };
+        _settingsService.Save(settings);
+
+        var loaded = _settingsService.Load();
+
+        Assert.Equal(hours, loaded.UpdateCheckIntervalHours);
+    }
+
     // --- Window Position Extreme Values ---
 
     [Fact]

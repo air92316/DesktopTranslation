@@ -40,48 +40,70 @@ public class UpdateService
 
     /// <summary>
     /// Checks GitHub Releases for a newer version.
-    /// Returns <c>null</c> if the current version is up-to-date or on network failure.
+    /// Returns <c>null</c> if the current version is up-to-date.
+    /// Throws on network failure after 3 retry attempts.
     /// </summary>
     public async Task<UpdateInfo?> CheckForUpdateAsync(
         string currentVersion,
         CancellationToken ct = default)
     {
-        try
+        const int maxRetries = 3;
+        Exception? lastException = null;
+
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
         {
-            var json = await HttpClient.GetStringAsync(GitHubApiUrl, ct);
-            var release = JsonSerializer.Deserialize<GitHubRelease>(json, JsonOptions);
+            try
+            {
+                var json = await HttpClient.GetStringAsync(GitHubApiUrl, ct);
+                var release = JsonSerializer.Deserialize<GitHubRelease>(json, JsonOptions);
 
-            if (release is null || string.IsNullOrWhiteSpace(release.TagName))
-                return null;
+                if (release is null || string.IsNullOrWhiteSpace(release.TagName))
+                    return null;
 
-            var remoteTag = release.TagName.TrimStart('v', 'V');
-            if (!System.Version.TryParse(remoteTag, out var remoteVersion))
-                return null;
+                var remoteTag = release.TagName.TrimStart('v', 'V');
+                if (!System.Version.TryParse(remoteTag, out var remoteVersion))
+                    return null;
 
-            var currentTag = currentVersion.TrimStart('v', 'V');
-            if (!System.Version.TryParse(currentTag, out var current))
-                return null;
+                var currentTag = currentVersion.TrimStart('v', 'V');
+                if (!System.Version.TryParse(currentTag, out var current))
+                    return null;
 
-            if (remoteVersion <= current)
-                return null;
+                if (remoteVersion <= current)
+                    return null;
 
-            var asset = FindInstallerAsset(release);
-            if (asset is null)
-                return null;
+                var asset = FindInstallerAsset(release);
+                if (asset is null)
+                    return null;
 
-            return new UpdateInfo(
-                Version: $"v{remoteVersion.Major}.{remoteVersion.Minor}.{remoteVersion.Build}",
-                DownloadUrl: asset.BrowserDownloadUrl,
-                FileSizeBytes: asset.Size,
-                ReleaseNotes: release.Body ?? "",
-                PublishedAt: release.PublishedAt);
+                if (!IsValidDownloadUrl(asset.BrowserDownloadUrl))
+                    return null;
+
+                return new UpdateInfo(
+                    Version: $"{remoteVersion.Major}.{remoteVersion.Minor}.{remoteVersion.Build}",
+                    DownloadUrl: asset.BrowserDownloadUrl,
+                    FileSizeBytes: asset.Size,
+                    ReleaseNotes: release.Body ?? "",
+                    PublishedAt: release.PublishedAt);
+            }
+            catch (Exception ex) when (
+                ex is HttpRequestException or TaskCanceledException or JsonException
+                && !ct.IsCancellationRequested
+                && attempt < maxRetries)
+            {
+                lastException = ex;
+                Debug.WriteLine($"[UPDATE] Check attempt {attempt}/{maxRetries} failed: {ex.Message}");
+                await Task.Delay(TimeSpan.FromSeconds(attempt), ct);
+            }
+            catch (Exception ex) when (
+                ex is HttpRequestException or TaskCanceledException or JsonException)
+            {
+                // Final attempt failed — rethrow for caller to handle
+                Debug.WriteLine($"[UPDATE] All {maxRetries} attempts failed: {ex.Message}");
+                throw;
+            }
         }
-        catch (Exception ex) when (
-            ex is HttpRequestException or TaskCanceledException or JsonException)
-        {
-            Debug.WriteLine($"Update check failed: {ex.Message}");
-            return null;
-        }
+
+        throw lastException!;
     }
 
     /// <summary>
@@ -96,32 +118,50 @@ public class UpdateService
         var fileName = $"{InstallerPrefix}{info.Version}{InstallerSuffix}";
         var tempPath = Path.Combine(Path.GetTempPath(), fileName);
 
-        using var response = await HttpClient.GetAsync(
-            info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
-        response.EnsureSuccessStatusCode();
-
-        var totalBytes = response.Content.Headers.ContentLength ?? info.FileSizeBytes;
-
-        await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
-        await using var fileStream = new FileStream(
-            tempPath, FileMode.Create, FileAccess.Write, FileShare.None,
-            bufferSize: 81920, useAsync: true);
-
-        var buffer = new byte[81920];
-        long bytesRead = 0;
-        int read;
-
-        while ((read = await contentStream.ReadAsync(buffer, ct)) > 0)
+        try
         {
-            await fileStream.WriteAsync(buffer.AsMemory(0, read), ct);
-            bytesRead += read;
+            using var response = await HttpClient.GetAsync(
+                info.DownloadUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            response.EnsureSuccessStatusCode();
 
-            if (totalBytes > 0)
-                progress?.Report((double)bytesRead / totalBytes);
+            var totalBytes = response.Content.Headers.ContentLength ?? info.FileSizeBytes;
+
+            await using var contentStream = await response.Content.ReadAsStreamAsync(ct);
+            await using var fileStream = new FileStream(
+                tempPath, FileMode.Create, FileAccess.Write, FileShare.None,
+                bufferSize: 81920, useAsync: true);
+
+            var buffer = new byte[81920];
+            long bytesRead = 0;
+            int read;
+
+            while ((read = await contentStream.ReadAsync(buffer, ct)) > 0)
+            {
+                await fileStream.WriteAsync(buffer.AsMemory(0, read), ct);
+                bytesRead += read;
+
+                if (totalBytes > 0)
+                    progress?.Report((double)bytesRead / totalBytes);
+            }
+
+            progress?.Report(1.0);
+
+            // Validate downloaded file size
+            var fileInfo = new FileInfo(tempPath);
+            if (info.FileSizeBytes > 0 && fileInfo.Length != info.FileSizeBytes)
+            {
+                throw new InvalidOperationException(
+                    $"Downloaded file size ({fileInfo.Length}) does not match expected ({info.FileSizeBytes}).");
+            }
+
+            return tempPath;
         }
-
-        progress?.Report(1.0);
-        return tempPath;
+        catch
+        {
+            // Clean up partial download on any failure
+            try { File.Delete(tempPath); } catch { }
+            throw;
+        }
     }
 
     /// <summary>
@@ -129,9 +169,18 @@ public class UpdateService
     /// </summary>
     public void LaunchInstallerAndExit(string installerPath)
     {
+        var fullPath = Path.GetFullPath(installerPath);
+        var expectedDir = Path.GetFullPath(Path.GetTempPath());
+
+        if (!fullPath.StartsWith(expectedDir, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Installer path is outside the temp directory.");
+
+        if (!File.Exists(fullPath))
+            throw new FileNotFoundException("Installer file not found.", fullPath);
+
         Process.Start(new ProcessStartInfo
         {
-            FileName = installerPath,
+            FileName = fullPath,
             Arguments = "/SILENT /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS",
             UseShellExecute = true
         });
@@ -176,6 +225,9 @@ public class UpdateService
     /// </summary>
     public static bool IsNewerVersion(string remote, string current)
     {
+        if (string.IsNullOrWhiteSpace(remote) || string.IsNullOrWhiteSpace(current))
+            return false;
+
         var remoteTag = remote.TrimStart('v', 'V');
         var currentTag = current.TrimStart('v', 'V');
 
@@ -185,6 +237,18 @@ public class UpdateService
             return false;
 
         return remoteVersion > currentVersion;
+    }
+
+    internal static bool IsValidDownloadUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return false;
+        if (uri.Scheme != Uri.UriSchemeHttps)
+            return false;
+        var host = uri.Host.ToLowerInvariant();
+        return host == "github.com"
+            || host.EndsWith(".github.com")
+            || host.EndsWith(".githubusercontent.com");
     }
 
     private static GitHubAsset? FindInstallerAsset(GitHubRelease release)

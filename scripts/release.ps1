@@ -19,6 +19,27 @@ if (-not (Test-Path "$Root/src/DesktopTranslation")) {
 Write-Host "=== DesktopTranslation Release v$Version ===" -ForegroundColor Cyan
 Write-Host "Root: $Root"
 
+# ── Pre-flight checks ────────────────────────────────────────────
+Write-Host "`nPre-flight checks..." -ForegroundColor Yellow
+
+# Check git working tree is clean
+$gitStatus = git -C $Root status --porcelain
+if ($gitStatus) {
+    Write-Host "  ERROR: Git working tree is not clean. Commit or stash changes first." -ForegroundColor Red
+    Write-Host $gitStatus
+    exit 1
+}
+
+# Check required tools
+if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+    throw "dotnet CLI not found in PATH"
+}
+if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+    throw "GitHub CLI (gh) not found in PATH"
+}
+
+Write-Host "  All checks passed" -ForegroundColor Green
+
 # ── 1. Update csproj version ─────────────────────────────────────
 Write-Host "`n[1/8] Updating csproj version..." -ForegroundColor Yellow
 $CsprojPath = "$Root/src/DesktopTranslation/DesktopTranslation.csproj"
@@ -88,8 +109,19 @@ if ($Iscc) {
     Write-Host "  ISCC.exe not found, skipping installer compilation" -ForegroundColor DarkYellow
 }
 
-# ── 6. GitHub Release ─────────────────────────────────────────────
-Write-Host "`n[6/8] Creating GitHub release..." -ForegroundColor Yellow
+# ── 6. Git commit and tag ────────────────────────────────────────
+Write-Host "`n[6/8] Git commit and tag..." -ForegroundColor Yellow
+Push-Location $Root
+git add src/DesktopTranslation/DesktopTranslation.csproj
+git add installer/setup.iss
+if (Test-Path "$Root/website/index.html") { git add website/index.html }
+git commit -m "release: v$Version"
+git tag "v$Version"
+git push origin main --tags
+Pop-Location
+
+# ── 7. GitHub Release ─────────────────────────────────────────────
+Write-Host "`n[7/8] Creating GitHub release..." -ForegroundColor Yellow
 $SetupExe = "$Root/dist/DesktopTranslation-v$Version-Setup.exe"
 if (Test-Path $SetupExe) {
     gh release create "v$Version" $SetupExe `
@@ -101,8 +133,8 @@ if (Test-Path $SetupExe) {
     Write-Host "  Setup exe not found at $SetupExe, skipping release" -ForegroundColor DarkYellow
 }
 
-# ── 7. Copy to website downloads and deploy ───────────────────────
-Write-Host "`n[7/8] Deploying website..." -ForegroundColor Yellow
+# ── 8. Deploy website ─────────────────────────────────────────────
+Write-Host "`n[8/8] Deploying website..." -ForegroundColor Yellow
 $WebDownloads = "$Root/website/downloads"
 if ((Test-Path $SetupExe) -and (Test-Path $WebDownloads)) {
     Copy-Item $SetupExe "$WebDownloads/"
@@ -116,14 +148,5 @@ if ((Test-Path $SetupExe) -and (Test-Path $WebDownloads)) {
 } else {
     Write-Host "  Skipping website deploy (missing files)" -ForegroundColor DarkYellow
 }
-
-# ── 8. Git commit and push ────────────────────────────────────────
-Write-Host "`n[8/8] Git commit..." -ForegroundColor Yellow
-Push-Location $Root
-git add -A
-git commit -m "release: v$Version"
-git tag "v$Version"
-git push origin main --tags
-Pop-Location
 
 Write-Host "`n=== Release v$Version complete ===" -ForegroundColor Green

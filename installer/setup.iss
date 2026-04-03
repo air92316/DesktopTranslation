@@ -32,6 +32,8 @@ ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
 DisableProgramGroupPage=yes
 LicenseFile=..\LICENSE
+CloseApplications=yes
+RestartApplications=yes
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -49,9 +51,6 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "啟動 {#MyAppName}"; Flags: nowait postinstall skipifsilent
-
-[UninstallDelete]
-Type: filesandordirs; Name: "{userappdata}\DesktopTranslation"
 
 [Code]
 // Check if .NET 8 Desktop Runtime is installed
@@ -150,11 +149,11 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
   begin
-    if MsgBox('是���要保留設定檔？' + #13#10 +
-              '（包��� API Key、視窗位置等偏好設定）',
+    if MsgBox('是否要刪除所有設定檔？' + #13#10 +
+              '（包含 API Key、視窗位置等偏好設定）',
               mbConfirmation, MB_YESNO) = IDYES then
     begin
-      // Don't delete AppData folder
+      // User chose to delete settings
       DelTree(ExpandConstant('{userappdata}\DesktopTranslation'), True, True, True);
     end;
   end;
