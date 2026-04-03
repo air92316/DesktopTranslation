@@ -34,9 +34,21 @@ if ($gitStatus) {
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     throw "dotnet CLI not found in PATH"
 }
-if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
-    throw "GitHub CLI (gh) not found in PATH"
+
+# Find GitHub CLI (check PATH first, then common install locations)
+$GhExe = (Get-Command gh -ErrorAction SilentlyContinue)?.Source
+if (-not $GhExe) {
+    $GhPaths = @(
+        "C:\Program Files\GitHub CLI\gh.exe",
+        "C:\Program Files (x86)\GitHub CLI\gh.exe",
+        "$env:LOCALAPPDATA\Programs\GitHub CLI\gh.exe"
+    )
+    $GhExe = $GhPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
 }
+if (-not $GhExe) {
+    throw "GitHub CLI (gh) not found in PATH or common install locations"
+}
+Write-Host "  GitHub CLI: $GhExe"
 
 Write-Host "  All checks passed" -ForegroundColor Green
 
@@ -124,7 +136,7 @@ Pop-Location
 Write-Host "`n[7/8] Creating GitHub release..." -ForegroundColor Yellow
 $SetupExe = "$Root/dist/DesktopTranslation-v$Version-Setup.exe"
 if (Test-Path $SetupExe) {
-    gh release create "v$Version" $SetupExe `
+    & $GhExe release create "v$Version" $SetupExe `
         --title "v$Version" `
         --generate-notes
     if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
