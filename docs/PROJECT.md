@@ -1,7 +1,7 @@
 # DesktopTranslation — 桌面即時翻譯工具
 
 > **開發者：Ramen Cat Studio**
-> **版本：v1.0.0**
+> **版本：v1.1.0**
 > **授權：MIT License**
 
 ## 產品概述

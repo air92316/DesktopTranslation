@@ -85,7 +85,7 @@ public class TrayIconManager : IDisposable
         menu.Items.Add(new WinForms.ToolStripSeparator());
         menu.Items.Add("關於", null, (_, _) =>
             System.Windows.MessageBox.Show(
-                "DesktopTranslation v1.0.0\n" +
+                "DesktopTranslation v1.1.0\n" +
                 "─────────────────────────\n" +
                 "桌面即時翻譯工具\n\n" +
                 "雙擊 Ctrl+C 即可將選取文字快速翻譯。\n" +

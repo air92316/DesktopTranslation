@@ -3,7 +3,7 @@
 ; Automatically downloads and installs .NET 8 Desktop Runtime if not present
 
 #define MyAppName "DesktopTranslation"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Ramen Cat Studio"
 #define MyAppURL "https://desktop-translation.pages.dev"
 #define MyAppExeName "DesktopTranslation.exe"
