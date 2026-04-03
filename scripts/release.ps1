@@ -57,9 +57,9 @@ if (Test-Path $IndexPath) {
     # Update version badge
     $html = $html -replace 'v[\d]+\.[\d]+\.[\d]+ — 免費開源', "v$Version — 免費開源"
 
-    # Update download link href
-    $html = $html -replace 'downloads/DesktopTranslation-v[\d]+\.[\d]+\.[\d]+-Setup\.exe',
-                           "downloads/DesktopTranslation-v$Version-Setup.exe"
+    # Update download link href (GitHub Release direct download)
+    $html = $html -replace 'https://github\.com/air92316/DesktopTranslation/releases/latest/download/DesktopTranslation-v[\d]+\.[\d]+\.[\d]+-Setup\.exe',
+                           "https://github.com/air92316/DesktopTranslation/releases/latest/download/DesktopTranslation-v$Version-Setup.exe"
 
     # Update download button text
     $html = $html -replace '免費下載 v[\d]+\.[\d]+\.[\d]+',
@@ -135,18 +135,15 @@ if (Test-Path $SetupExe) {
 
 # ── 8. Deploy website ─────────────────────────────────────────────
 Write-Host "`n[8/8] Deploying website..." -ForegroundColor Yellow
-$WebDownloads = "$Root/website/downloads"
-if ((Test-Path $SetupExe) -and (Test-Path $WebDownloads)) {
-    Copy-Item $SetupExe "$WebDownloads/"
-    Write-Host "  Copied installer to website/downloads/"
-
-    Push-Location "$Root/website"
+$WebDir = "$Root/website"
+if (Test-Path $WebDir) {
+    Push-Location $WebDir
     npx wrangler pages deploy . --project-name desktop-translation
     if ($LASTEXITCODE -ne 0) { Write-Host "  wrangler deploy failed" -ForegroundColor Red }
     else { Write-Host "  Website deployed" }
     Pop-Location
 } else {
-    Write-Host "  Skipping website deploy (missing files)" -ForegroundColor DarkYellow
+    Write-Host "  Skipping website deploy (missing website dir)" -ForegroundColor DarkYellow
 }
 
 Write-Host "`n=== Release v$Version complete ===" -ForegroundColor Green
