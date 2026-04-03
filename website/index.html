@@ -20,6 +20,7 @@
       <nav class="header-nav">
         <a href="#features">功能</a>
         <a href="#preview">預覽</a>
+        <a href="#guide">教學</a>
         <a href="#download">下載</a>
       </nav>
       <button class="theme-toggle" id="themeToggle" aria-label="切換深淺色主題">
@@ -130,6 +131,172 @@
         </div>
         <div class="pw-history-bar">
           <span class="pw-history-label">&#9660; 翻譯歷史</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Guide -->
+  <section class="guide" id="guide">
+    <div class="container">
+      <h2 class="section-title">使用教學</h2>
+      <p class="section-desc">安裝完成後，按照以下步驟開始使用</p>
+
+      <div class="guide-steps">
+        <!-- Step 1 -->
+        <div class="guide-step reveal">
+          <div class="guide-step-number">1</div>
+          <div class="guide-step-content">
+            <h3>找到系統匣圖示</h3>
+            <p>安裝完成後，程式會在右下角系統匣（工具列）顯示一個<strong style="color:var(--accent-primary);">藍色「T」圖示</strong>。如果看不到，請點擊工具列的 <code>^</code> 展開箭頭。</p>
+            <div class="guide-visual">
+              <div class="guide-tray-demo">
+                <span class="guide-tray-icon">T</span>
+                <span class="guide-tray-label">← 找到這個圖示</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="guide-step reveal">
+          <div class="guide-step-number">2</div>
+          <div class="guide-step-content">
+            <h3>開始翻譯</h3>
+            <p>在任何地方選取文字，然後<strong>快速按兩次 Ctrl+C</strong>（間隔 0.4 秒內），翻譯視窗會自動彈出並顯示翻譯結果。</p>
+            <div class="guide-visual">
+              <div class="guide-keys">
+                <kbd>Ctrl</kbd> + <kbd>C</kbd>
+                <span class="guide-keys-then">→</span>
+                <kbd>Ctrl</kbd> + <kbd>C</kbd>
+                <span class="guide-keys-result">= 翻譯！</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="guide-step reveal">
+          <div class="guide-step-number">3</div>
+          <div class="guide-step-content">
+            <h3>右鍵選單</h3>
+            <p>右鍵點擊系統匣圖示，會出現快捷選單：</p>
+            <div class="guide-visual">
+              <div class="guide-menu-demo">
+                <div class="guide-menu-item">顯示主視窗</div>
+                <div class="guide-menu-sep"></div>
+                <div class="guide-menu-item">翻譯引擎 <span class="guide-menu-arrow">▸</span></div>
+                <div class="guide-menu-sep"></div>
+                <div class="guide-menu-item">☑ 開機自啟動</div>
+                <div class="guide-menu-item highlight">⚙ 設定</div>
+                <div class="guide-menu-sep"></div>
+                <div class="guide-menu-item">關於</div>
+                <div class="guide-menu-item">結束</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4: Settings -->
+        <div class="guide-step reveal">
+          <div class="guide-step-number">4</div>
+          <div class="guide-step-content">
+            <h3>設定詳細說明</h3>
+            <p>點擊右鍵選單的「<strong>設定</strong>」開啟設定視窗，以下是各項設定說明：</p>
+
+            <div class="guide-settings">
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">翻譯引擎</div>
+                <div class="guide-setting-desc">
+                  <strong>Google</strong>（預設）— 免費、無需設定，適合日常翻譯<br>
+                  <strong>LLM</strong> — 使用 AI 模型翻譯，品質更高，需要 API Key
+                </div>
+              </div>
+
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">LLM Provider</div>
+                <div class="guide-setting-desc">
+                  選擇 AI 翻譯提供者：<br>
+                  <strong>Claude</strong>（Anthropic）— 前往 <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">console.anthropic.com</a> 註冊並取得 API Key<br>
+                  <strong>OpenAI</strong> — 前往 <a href="https://platform.openai.com/" target="_blank" rel="noopener noreferrer">platform.openai.com</a> 註冊並取得 API Key
+                </div>
+              </div>
+
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">API Key</div>
+                <div class="guide-setting-desc">
+                  輸入你的 LLM API Key。此金鑰會以 <strong>DPAPI 加密</strong>儲存在本機，不會上傳到任何伺服器。<br>
+                  <em>僅使用 Google 翻譯時無需填寫此欄位。</em>
+                </div>
+              </div>
+
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">開機自啟動</div>
+                <div class="guide-setting-desc">
+                  開啟後，Windows 啟動時會自動在系統匣載入 DesktopTranslation，隨時可用雙擊 Ctrl+C 翻譯。
+                </div>
+              </div>
+
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">雙擊間隔</div>
+                <div class="guide-setting-desc">
+                  兩次 Ctrl+C 的最大間隔時間（毫秒）。預設 <strong>400ms</strong>。<br>
+                  如果經常誤觸，可以調低到 300ms；如果反應不及，可以調高到 500ms。
+                </div>
+              </div>
+
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">TTS 語速</div>
+                <div class="guide-setting-desc">
+                  文字轉語音的朗讀速度。<strong>1.0</strong> 為正常速度，0.5 為慢速，2.0 為快速。<br>
+                  點擊翻譯視窗中的 🔊 按鈕可朗讀原文或翻譯結果。
+                </div>
+              </div>
+
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">主題</div>
+                <div class="guide-setting-desc">
+                  <strong>跟隨系統</strong>（預設）— 自動配合 Windows 深色/淺色模式<br>
+                  <strong>淺色</strong> — 永遠使用淺色主題<br>
+                  <strong>深色</strong> — 永遠使用深色主題
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="guide-step reveal">
+          <div class="guide-step-number">5</div>
+          <div class="guide-step-content">
+            <h3>翻譯視窗操作</h3>
+            <div class="guide-settings">
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">⇄ 互換</div>
+                <div class="guide-setting-desc">點擊語言列中間的互換按鈕，將翻譯結果移到左邊並反向翻譯</div>
+              </div>
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">📌 置頂</div>
+                <div class="guide-setting-desc">點擊標題列的圖釘按鈕，讓翻譯視窗永遠在最上層</div>
+              </div>
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">語言下拉選單</div>
+                <div class="guide-setting-desc">自動偵測不準確時，可以手動選擇來源語言和目標語言（支援 14 種語言）</div>
+              </div>
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">📋 複製</div>
+                <div class="guide-setting-desc">一鍵複製翻譯結果到剪貼簿</div>
+              </div>
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">🔊 朗讀</div>
+                <div class="guide-setting-desc">左右兩邊各有朗讀按鈕，使用系統 TTS 語音朗讀文字</div>
+              </div>
+              <div class="guide-setting-item">
+                <div class="guide-setting-label">歷史紀錄</div>
+                <div class="guide-setting-desc">點擊底部的「翻譯歷史」展開最近 50 筆翻譯紀錄</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

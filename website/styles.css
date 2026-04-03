@@ -754,3 +754,127 @@ code {
     transform: none;
   }
 }
+
+/* --- Guide Section --- */
+.guide { padding: 5rem 0; }
+.guide .section-desc { text-align: center; color: var(--text-secondary); margin-bottom: 3rem; }
+
+.guide-steps { max-width: 720px; margin: 0 auto; }
+
+.guide-step {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid var(--separator);
+}
+.guide-step:last-child { border-bottom: none; margin-bottom: 0; }
+
+.guide-step-number {
+  flex-shrink: 0;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--accent-primary);
+  color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-weight: 700;
+  margin-top: 0.2rem;
+}
+
+.guide-step-content h3 {
+  font-size: 1.15rem; font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+.guide-step-content p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 0.75rem;
+}
+
+.guide-visual { margin-top: 0.75rem; }
+
+/* Tray icon demo */
+.guide-tray-demo {
+  display: inline-flex; align-items: center; gap: 0.75rem;
+  background: var(--bg-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+}
+.guide-tray-icon {
+  width: 28px; height: 28px;
+  background: var(--accent-primary);
+  color: #fff; font-weight: 700; font-size: 0.9rem;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 4px;
+}
+.guide-tray-label { color: var(--text-tertiary); font-size: 0.85rem; }
+
+/* Keyboard keys demo */
+.guide-keys {
+  display: flex; align-items: center; gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.guide-keys kbd {
+  display: inline-block;
+  padding: 0.3rem 0.6rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--separator);
+  border-radius: 6px;
+  font-family: "Segoe UI", monospace;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.guide-keys-then { color: var(--text-tertiary); font-size: 1.2rem; margin: 0 0.2rem; }
+.guide-keys-result { color: var(--accent-primary); font-weight: 600; margin-left: 0.5rem; }
+
+/* Context menu demo */
+.guide-menu-demo {
+  display: inline-block;
+  background: var(--bg-card);
+  border: 1px solid var(--separator);
+  border-radius: 8px;
+  padding: 0.4rem 0;
+  min-width: 180px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.guide-menu-item {
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  display: flex; justify-content: space-between;
+}
+.guide-menu-item.highlight {
+  background: var(--accent-primary);
+  color: #fff;
+  font-weight: 500;
+}
+.guide-menu-arrow { opacity: 0.5; }
+.guide-menu-sep { height: 1px; background: var(--separator); margin: 0.25rem 0.5rem; }
+
+/* Settings list */
+.guide-settings { margin-top: 0.5rem; }
+.guide-setting-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--separator);
+}
+.guide-setting-item:last-child { border-bottom: none; }
+.guide-setting-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+  font-size: 0.95rem;
+}
+.guide-setting-desc {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+.guide-setting-desc a { color: var(--accent-primary); }
+.guide-setting-desc em { opacity: 0.7; }
+
+@media (max-width: 640px) {
+  .guide-step { flex-direction: column; gap: 0.75rem; }
+  .guide-step-number { width: 30px; height: 30px; font-size: 0.85rem; }
+}
