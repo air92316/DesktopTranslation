@@ -120,15 +120,27 @@ public partial class App : System.Windows.Application
 
     private void ShowTranslationWindow()
     {
-        if (_translationWindow == null || !_translationWindow.IsVisible)
+        EnsureTranslationWindow();
+
+        if (_translationWindow!.IsVisible && _translationWindow.Opacity > 0.5)
         {
-            EnsureTranslationWindow();
-            _translationWindow!.Show();
-            _translationWindow.Activate();
+            // Window is fully visible — hide it
+            _translationWindow.HideWindow();
         }
         else
         {
-            _translationWindow.HideWindow();
+            // Window is hidden or fading out — show it
+            _translationWindow.Opacity = 1;
+            _translationWindow.Show();
+            _translationWindow.Activate();
+
+            try
+            {
+                var fadeIn = (System.Windows.Media.Animation.Storyboard)
+                    _translationWindow.FindResource("FadeInStoryboard");
+                fadeIn.Begin(_translationWindow);
+            }
+            catch { /* animation not critical */ }
         }
     }
 

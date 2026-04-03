@@ -147,27 +147,31 @@ public partial class TranslationWindow : Window
             ? (string)item.Tag : "zh-TW";
 
     private bool _llmAvailable;
+    private bool _dpiApplied;
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        if (!_dpiApplied)
+        {
+            ApplyDpiScaling();
+            _dpiApplied = true;
+        }
         var settings = _settingsService.Load();
         RestorePosition(settings);
         _llmAvailable = !string.IsNullOrEmpty(settings.ApiKey);
         UpdateEngineButtons(settings.Engine);
-        ApplyDpiScaling();
     }
+
+    private double _dpiScale = 1.0;
 
     private void ApplyDpiScaling()
     {
-        var scale = Helpers.Win32Interop.GetSystemDpiScale();
-        if (scale > 1.05) // Only apply if scaling > 105%
+        _dpiScale = Helpers.Win32Interop.GetSystemDpiScale();
+        if (_dpiScale > 1.05)
         {
-            var transform = new ScaleTransform(scale, scale);
-            MainBorder.LayoutTransform = transform;
-            Width *= scale;
-            Height *= scale;
-            MinWidth = 520 * scale;
-            MinHeight = 280 * scale;
+            MainBorder.LayoutTransform = new ScaleTransform(_dpiScale, _dpiScale);
+            MinWidth = 520 * _dpiScale;
+            MinHeight = 280 * _dpiScale;
         }
     }
 
@@ -576,10 +580,25 @@ public partial class TranslationWindow : Window
     // Position persistence
     private void RestorePosition(AppSettings settings)
     {
+        // Apply DPI-scaled size: LayoutTransform handles content scaling,
+        // but Window size needs to match so the content isn't clipped
+        var w = settings.WindowWidth;
+        var h = settings.WindowHeight;
+        if (_dpiScale > 1.05)
+        {
+            // If stored size is the default (720x400), scale it up for DPI
+            // If user manually resized, use their size as-is
+            if (Math.Abs(w - 720) < 1 && Math.Abs(h - 400) < 1)
+            {
+                w *= _dpiScale;
+                h *= _dpiScale;
+            }
+        }
+
         Left = settings.WindowX;
         Top = settings.WindowY;
-        Width = settings.WindowWidth;
-        Height = settings.WindowHeight;
+        Width = w;
+        Height = h;
         Topmost = settings.AlwaysOnTop;
         BtnPin.Opacity = Topmost ? 1.0 : 0.5;
     }
