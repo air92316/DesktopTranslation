@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using DesktopTranslation.Models;
 
 namespace DesktopTranslation.Services;
@@ -265,16 +266,28 @@ public class UpdateService
 
     private sealed class GitHubRelease
     {
+        [JsonPropertyName("tag_name")]
         public string TagName { get; set; } = "";
+
+        [JsonPropertyName("body")]
         public string? Body { get; set; }
+
+        [JsonPropertyName("published_at")]
         public DateTime PublishedAt { get; set; }
+
+        [JsonPropertyName("assets")]
         public GitHubAsset[]? Assets { get; set; }
     }
 
     private sealed class GitHubAsset
     {
+        [JsonPropertyName("name")]
         public string Name { get; set; } = "";
+
+        [JsonPropertyName("browser_download_url")]
         public string BrowserDownloadUrl { get; set; } = "";
+
+        [JsonPropertyName("size")]
         public long Size { get; set; }
     }
 }
