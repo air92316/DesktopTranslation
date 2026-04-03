@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DesktopTranslation — 雙擊 Ctrl+C，即時翻譯</title>
+  <meta name="description" content="免費、快速、優雅的 Windows 桌面翻譯工具。雙擊 Ctrl+C 即可翻譯選取文字，支援 Google Translate、Claude、OpenAI。">
+  <meta name="theme-color" content="#4A6FA5">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#" class="logo" aria-label="DesktopTranslation">
+        <span class="logo-icon">T</span>
+        <span class="logo-text">DesktopTranslation</span>
+      </a>
+      <nav class="header-nav">
+        <a href="#features">功能</a>
+        <a href="#preview">預覽</a>
+        <a href="#download">下載</a>
+      </nav>
+      <button class="theme-toggle" id="themeToggle" aria-label="切換深淺色主題">
+        <span class="theme-icon theme-icon--light">&#9789;</span>
+        <span class="theme-icon theme-icon--dark">&#9788;</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero" id="hero">
+    <div class="container hero-inner">
+      <p class="hero-badge">v1.0.0 — 免費開源</p>
+      <h1 class="hero-title">DesktopTranslation</h1>
+      <p class="hero-slogan">雙擊 Ctrl+C，即時翻譯</p>
+      <p class="hero-sub">免費、快速、優雅的桌面翻譯工具</p>
+      <a href="#download" class="btn btn-primary btn-lg hero-cta">
+        免費下載 v1.0.0
+      </a>
+      <p class="hero-meta">Windows 10/11 &nbsp;|&nbsp; 免費 &nbsp;|&nbsp; 開源</p>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="container">
+      <h2 class="section-title">功能特色</h2>
+      <div class="features-grid">
+
+        <article class="feature-card reveal">
+          <div class="feature-icon">&#9000;</div>
+          <h3 class="feature-title">雙擊 Ctrl+C</h3>
+          <p class="feature-desc">不打斷工作流程，選取文字後連按兩次 Ctrl+C 即可翻譯。第一次正常複製，第二次觸發翻譯。</p>
+        </article>
+
+        <article class="feature-card reveal">
+          <div class="feature-icon">&#127760;</div>
+          <h3 class="feature-title">多引擎支援</h3>
+          <p class="feature-desc">預設使用免費的 Google Translate，進階可切換 Claude 或 OpenAI，支援 13 種語言。</p>
+        </article>
+
+        <article class="feature-card reveal">
+          <div class="feature-icon">&#127912;</div>
+          <h3 class="feature-title">日式極簡設計</h3>
+          <p class="feature-desc">深淺色主題自動切換、精緻動畫效果、4K 螢幕完整支援，視覺清爽不干擾。</p>
+        </article>
+
+        <article class="feature-card reveal">
+          <div class="feature-icon">&#128274;</div>
+          <h3 class="feature-title">隱私安全</h3>
+          <p class="feature-desc">API Key 使用 Windows DPAPI 加密、所有翻譯本地處理、不上傳個人資料。</p>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Preview -->
+  <section class="preview" id="preview">
+    <div class="container">
+      <h2 class="section-title">介面預覽</h2>
+      <div class="preview-window reveal">
+        <div class="pw-titlebar">
+          <div class="pw-titlebar-left">
+            <span class="pw-logo">T</span>
+            <span class="pw-title">DesktopTranslation</span>
+          </div>
+          <div class="pw-titlebar-center">
+            <span class="pw-seg pw-seg--active">Google</span>
+            <span class="pw-seg">LLM</span>
+          </div>
+          <div class="pw-titlebar-right">
+            <span class="pw-btn">&#128204;</span>
+            <span class="pw-btn">&mdash;</span>
+            <span class="pw-btn pw-btn--close">&times;</span>
+          </div>
+        </div>
+        <div class="pw-lang-row">
+          <span class="pw-lang">English</span>
+          <span class="pw-swap">&#8644;</span>
+          <span class="pw-lang">繁體中文</span>
+        </div>
+        <div class="pw-content">
+          <div class="pw-panel pw-panel--left">
+            <p class="pw-text">The quick brown fox jumps over the lazy dog.</p>
+            <div class="pw-actions">
+              <span class="pw-action-btn" title="朗讀">&#128264;</span>
+            </div>
+          </div>
+          <div class="pw-divider"></div>
+          <div class="pw-panel pw-panel--right">
+            <p class="pw-text pw-text--result">敏捷的棕色狐狸跳過懶惰的狗。</p>
+            <div class="pw-actions">
+              <span class="pw-action-btn" title="朗讀">&#128264;</span>
+              <span class="pw-action-btn" title="複製">&#128203;</span>
+            </div>
+          </div>
+        </div>
+        <div class="pw-history-bar">
+          <span class="pw-history-label">&#9660; 翻譯歷史</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download -->
+  <section class="download" id="download">
+    <div class="container download-inner">
+      <h2 class="section-title">立即下載</h2>
+      <p class="download-desc">免費、開源、無需安裝。解壓縮後即可使用。</p>
+
+      <div class="download-buttons">
+        <div class="download-option">
+          <a href="downloads/DesktopTranslation-v1.0.0-portable.zip" class="btn btn-primary btn-lg download-btn">
+            下載輕量版 (3.6 MB)
+          </a>
+          <p class="download-option-note">需要 <a href="https://dotnet.microsoft.com/download/dotnet/8.0" target="_blank" rel="noopener noreferrer">.NET 8 Runtime</a></p>
+        </div>
+        <div class="download-option">
+          <a href="https://github.com/RamenCatStudio/DesktopTranslation/releases/latest" class="btn btn-secondary btn-lg download-btn" target="_blank" rel="noopener noreferrer">
+            下載完整版 (66 MB)
+          </a>
+          <p class="download-option-note">已內含 Runtime，無需額外安裝</p>
+        </div>
+      </div>
+
+      <div class="download-info">
+        <div class="download-info-item">
+          <span class="download-info-label">版本</span>
+          <span class="download-info-value">v1.0.0</span>
+        </div>
+        <div class="download-info-item">
+          <span class="download-info-label">平台</span>
+          <span class="download-info-value">Windows 10/11 (x64)</span>
+        </div>
+        <div class="download-info-item">
+          <span class="download-info-label">授權</span>
+          <span class="download-info-value">MIT License</span>
+        </div>
+      </div>
+
+      <p class="download-note">檔案為免安裝版，解壓縮後執行 <code>DesktopTranslation.exe</code> 即可。</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p class="footer-copy">&copy; 2026 Ramen Cat Studio</p>
+      <div class="footer-links">
+        <a href="https://github.com/RamenCatStudio/DesktopTranslation" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <span class="footer-sep">&middot;</span>
+        <span>MIT License</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
