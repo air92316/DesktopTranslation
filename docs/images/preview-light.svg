@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 440" width="720" height="440">
+  <defs>
+    <filter id="windowShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#1B1F23" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Window outer frame with shadow -->
+  <rect x="20" y="14" width="680" height="412" rx="12" ry="12" fill="#FAFBFC" filter="url(#windowShadow)" stroke="#E1E4E8" stroke-width="1"/>
+
+  <!-- ==================== TITLE BAR ==================== -->
+  <rect x="20" y="14" width="680" height="36" rx="12" ry="12" fill="#F2F3F5"/>
+  <!-- Square off bottom of title bar -->
+  <rect x="20" y="38" width="680" height="12" fill="#F2F3F5"/>
+
+  <!-- App title -->
+  <text x="44" y="37" font-family="Segoe UI, sans-serif" font-size="12" font-weight="600" fill="#1B1F23">DesktopTranslation</text>
+
+  <!-- Segmented Control container -->
+  <rect x="280" y="22" width="120" height="22" rx="6" ry="6" fill="#E1E4E8"/>
+  <!-- Active segment: Google -->
+  <rect x="282" y="24" width="56" height="18" rx="4" ry="4" fill="#4A6FA5"/>
+  <text x="310" y="36.5" font-family="Segoe UI, sans-serif" font-size="11" fill="#FAFBFC" text-anchor="middle">Google</text>
+  <!-- Inactive segment: LLM -->
+  <text x="370" y="36.5" font-family="Segoe UI, sans-serif" font-size="11" fill="#586069" text-anchor="middle">LLM</text>
+
+  <!-- Pin icon (SVG path) -->
+  <g transform="translate(644,24)">
+    <path d="M8,2 L8,8 L5,10 L5,11 L11,11 L11,10 L8,8 L8,2 Z M8,11 L8,15" stroke="#586069" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+    <circle cx="8" cy="2" r="1" fill="#586069"/>
+  </g>
+  <!-- Dash / minimize -->
+  <line x1="666" y1="32" x2="678" y2="32" stroke="#586069" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- Close X -->
+  <g transform="translate(684,26)">
+    <line x1="0" y1="0" x2="10" y2="10" stroke="#586069" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="10" y1="0" x2="0" y2="10" stroke="#586069" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Separator below title bar -->
+  <line x1="20" y1="50" x2="700" y2="50" stroke="#E1E4E8" stroke-width="1"/>
+
+  <!-- ==================== LANGUAGE ROW ==================== -->
+
+  <!-- Left language dropdown -->
+  <rect x="32" y="58" width="196" height="28" rx="6" ry="6" fill="#EBEDF0"/>
+  <text x="44" y="77" font-family="Segoe UI, sans-serif" font-size="12" fill="#1B1F23">&#x81EA;&#x52D5;&#x5075;&#x6E2C; (English)</text>
+  <text x="214" y="77" font-family="Segoe UI, sans-serif" font-size="10" fill="#8B949E">&#x25BE;</text>
+
+  <!-- Speaker icon (left) -->
+  <g transform="translate(236,64)">
+    <path d="M0,6 L3,6 L7,2 L7,14 L3,10 L0,10 Z" fill="#586069" opacity="0.8"/>
+    <path d="M9,5 Q12,8 9,11" stroke="#586069" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Clear X (left) -->
+  <g transform="translate(262,67)">
+    <line x1="0" y1="0" x2="8" y2="8" stroke="#8B949E" stroke-width="1.3" stroke-linecap="round"/>
+    <line x1="8" y1="0" x2="0" y2="8" stroke="#8B949E" stroke-width="1.3" stroke-linecap="round"/>
+  </g>
+
+  <!-- Swap button (center circle) -->
+  <circle cx="360" cy="72" r="16" fill="#4A6FA5"/>
+  <!-- Swap arrows -->
+  <g transform="translate(349,66)">
+    <line x1="0" y1="4" x2="18" y2="4" stroke="#FAFBFC" stroke-width="1.5" stroke-linecap="round"/>
+    <polyline points="14,1 18,4 14,7" stroke="#FAFBFC" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="22" y1="10" x2="4" y2="10" stroke="#FAFBFC" stroke-width="1.5" stroke-linecap="round"/>
+    <polyline points="8,7 4,10 8,13" stroke="#FAFBFC" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Right language dropdown -->
+  <rect x="420" y="58" width="160" height="28" rx="6" ry="6" fill="#EBEDF0"/>
+  <text x="432" y="77" font-family="Segoe UI, sans-serif" font-size="12" fill="#1B1F23">&#x7E41;&#x9AD4;&#x4E2D;&#x6587;</text>
+  <text x="566" y="77" font-family="Segoe UI, sans-serif" font-size="10" fill="#8B949E">&#x25BE;</text>
+
+  <!-- Speaker icon (right) -->
+  <g transform="translate(590,64)">
+    <path d="M0,6 L3,6 L7,2 L7,14 L3,10 L0,10 Z" fill="#586069" opacity="0.8"/>
+    <path d="M9,5 Q12,8 9,11" stroke="#586069" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- Copy icon (right) -->
+  <g transform="translate(618,63)">
+    <rect x="0" y="3" width="9" height="11" rx="1.5" ry="1.5" fill="none" stroke="#586069" stroke-width="1.2"/>
+    <rect x="3" y="0" width="9" height="11" rx="1.5" ry="1.5" fill="#FAFBFC" stroke="#586069" stroke-width="1.2"/>
+  </g>
+
+  <!-- Separator below language row -->
+  <line x1="20" y1="94" x2="700" y2="94" stroke="#E1E4E8" stroke-width="1"/>
+
+  <!-- ==================== MAIN CONTENT AREA ==================== -->
+  <!-- Vertical divider in center -->
+  <line x1="360" y1="94" x2="360" y2="384" stroke="#E1E4E8" stroke-width="1"/>
+
+  <!-- Source text (left panel) -->
+  <text x="44" y="128" font-family="Segoe UI, sans-serif" font-size="14" fill="#586069" line-height="1.6">The future belongs to those</text>
+  <text x="44" y="152" font-family="Segoe UI, sans-serif" font-size="14" fill="#586069">who believe in the beauty</text>
+  <text x="44" y="176" font-family="Segoe UI, sans-serif" font-size="14" fill="#586069">of their dreams.</text>
+
+  <!-- Text cursor -->
+  <rect x="148" y="164" width="1.5" height="16" rx="0.75" fill="#4A6FA5" opacity="0.8"/>
+
+  <!-- Translation text (right panel) -->
+  <text x="380" y="128" font-family="Segoe UI, sans-serif" font-size="14" fill="#1B1F23">&#x672A;&#x4F86;&#x5C6C;&#x65BC;&#x90A3;&#x4E9B;&#x76F8;&#x4FE1;</text>
+  <text x="380" y="152" font-family="Segoe UI, sans-serif" font-size="14" fill="#1B1F23">&#x81EA;&#x5DF1;&#x5922;&#x60F3;&#x4E4B;&#x7F8E;&#x7684;&#x4EBA;&#x3002;</text>
+
+  <!-- ==================== HISTORY PANEL ==================== -->
+  <line x1="20" y1="384" x2="700" y2="384" stroke="#E1E4E8" stroke-width="1"/>
+
+  <!-- History panel bottom -->
+  <rect x="20" y="384" width="680" height="42" fill="#F2F3F5"/>
+  <!-- Round only bottom corners by overlaying -->
+  <rect x="20" y="396" width="680" height="30" rx="12" ry="12" fill="#F2F3F5"/>
+  <rect x="20" y="384" width="680" height="18" fill="#F2F3F5"/>
+
+  <!-- Expand arrow -->
+  <text x="320" y="410" font-family="Segoe UI, sans-serif" font-size="10" fill="#8B949E">&#x25BE;</text>
+  <!-- History label -->
+  <text x="334" y="410" font-family="Segoe UI, sans-serif" font-size="12" fill="#586069">&#x7FFB;&#x8B6F;&#x6B77;&#x53F2; (3 &#x7B46;)</text>
+</svg>
