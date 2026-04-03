@@ -24,3 +24,12 @@ Desktop.ini
 
 ## Superpowers
 .superpowers/
+
+## Wrangler
+.wrangler/
+
+## Self-contained publish
+publish-sc/
+
+## Debug
+dt-debug.log
