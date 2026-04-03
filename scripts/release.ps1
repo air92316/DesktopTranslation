@@ -150,7 +150,7 @@ Write-Host "`n[8/8] Deploying website..." -ForegroundColor Yellow
 $WebDir = "$Root/website"
 if (Test-Path $WebDir) {
     Push-Location $WebDir
-    npx wrangler pages deploy . --project-name desktop-translation
+    npx wrangler pages deploy . --project-name desktop-translation --branch main --commit-dirty=true
     if ($LASTEXITCODE -ne 0) { Write-Host "  wrangler deploy failed" -ForegroundColor Red }
     else { Write-Host "  Website deployed" }
     Pop-Location
