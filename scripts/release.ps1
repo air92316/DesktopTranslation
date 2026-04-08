@@ -109,6 +109,7 @@ Write-Host "  Published to $PublishDir"
 # ── 5. Inno Setup compile ────────────────────────────────────────
 Write-Host "`n[5/8] Compiling installer..." -ForegroundColor Yellow
 $IsccPaths = @(
+    "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
     "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
     "C:\Program Files\Inno Setup 6\ISCC.exe"
 )
