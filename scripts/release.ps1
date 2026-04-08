@@ -36,7 +36,8 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
 }
 
 # Find GitHub CLI (check PATH first, then common install locations)
-$GhExe = (Get-Command gh -ErrorAction SilentlyContinue)?.Source
+$GhCmd = Get-Command gh -ErrorAction SilentlyContinue
+$GhExe = if ($GhCmd) { $GhCmd.Source } else { $null }
 if (-not $GhExe) {
     $GhPaths = @(
         "C:\Program Files\GitHub CLI\gh.exe",
