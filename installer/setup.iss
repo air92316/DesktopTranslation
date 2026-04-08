@@ -26,6 +26,7 @@ OutputDir=..\dist
 OutputBaseFilename=DesktopTranslation-v{#MyAppVersion}-Setup
 Compression=lzma2
 SolidCompression=yes
+SetupIconFile=..\src\DesktopTranslation\Assets\app-icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 PrivilegesRequired=lowest
 ArchitecturesInstallIn64BitMode=x64compatible

@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.IO;
 using System.Windows;
 using WinForms = System.Windows.Forms;
 
@@ -111,10 +112,15 @@ public class TrayIconManager : IDisposable
 
     private static Icon CreateTrayIcon()
     {
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "app-icon.ico");
+        if (File.Exists(iconPath))
+            return new Icon(iconPath, 32, 32);
+
+        // Fallback: draw programmatically
         using var bmp = new Bitmap(32, 32);
         using var g = Graphics.FromImage(bmp);
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-        g.Clear(Color.FromArgb(74, 111, 165)); // #4A6FA5 Ai-iro
+        g.Clear(Color.FromArgb(74, 111, 165));
         using var font = new Font(new System.Drawing.FontFamily("Segoe UI"), 18, System.Drawing.FontStyle.Bold);
         using var sf = new StringFormat
         {
@@ -122,7 +128,6 @@ public class TrayIconManager : IDisposable
             LineAlignment = StringAlignment.Center
         };
         g.DrawString("T", font, Brushes.White, new RectangleF(0, 0, 32, 32), sf);
-
         var handle = bmp.GetHicon();
         return Icon.FromHandle(handle);
     }
