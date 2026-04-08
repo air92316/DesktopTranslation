@@ -54,38 +54,15 @@ Write-Host "  GitHub CLI: $GhExe"
 Write-Host "  All checks passed" -ForegroundColor Green
 
 # ── 1. Update csproj version ─────────────────────────────────────
-Write-Host "`n[1/8] Updating csproj version..." -ForegroundColor Yellow
+Write-Host "`n[1/6] Updating csproj version..." -ForegroundColor Yellow
 $CsprojPath = "$Root/src/DesktopTranslation/DesktopTranslation.csproj"
 $csproj = [System.IO.File]::ReadAllText($CsprojPath, [System.Text.Encoding]::UTF8)
 $csproj = $csproj -replace '<Version>[^<]+</Version>', "<Version>$Version</Version>"
 [System.IO.File]::WriteAllText($CsprojPath, $csproj, [System.Text.Encoding]::UTF8)
 Write-Host "  csproj version set to $Version"
 
-# ── 2. Update website version and download link ──────────────────
-Write-Host "`n[2/8] Updating website..." -ForegroundColor Yellow
-$IndexPath = "$Root/website/index.html"
-if (Test-Path $IndexPath) {
-    $html = [System.IO.File]::ReadAllText($IndexPath, [System.Text.Encoding]::UTF8)
-
-    # Update version badge (e.g. "v1.2.5 — 免費開源")
-    $html = $html -replace 'v[\d]+\.[\d]+\.[\d]+\s*\u2014\s*\u514D\u8CBB\u958B\u6E90', "v$Version — 免費開源"
-
-    # Update download link href (GitHub Release direct download)
-    $html = $html -replace 'DesktopTranslation-v[\d]+\.[\d]+\.[\d]+-Setup\.exe',
-                           "DesktopTranslation-v$Version-Setup.exe"
-
-    # Update download button text (e.g. "免費下載 v1.2.5")
-    $html = $html -replace '\u514D\u8CBB\u4E0B\u8F09\s*v[\d]+\.[\d]+\.[\d]+',
-                           "免費下載 v$Version"
-
-    [System.IO.File]::WriteAllText($IndexPath, $html, [System.Text.Encoding]::UTF8)
-    Write-Host "  website index.html updated"
-} else {
-    Write-Host "  website/index.html not found, skipping" -ForegroundColor DarkYellow
-}
-
-# ── 3. Update Inno Setup version ─────────────────────────────────
-Write-Host "`n[3/8] Updating Inno Setup script..." -ForegroundColor Yellow
+# ── 2. Update Inno Setup version ─────────────────────────────────
+Write-Host "`n[2/6] Updating Inno Setup script..." -ForegroundColor Yellow
 $IssPath = "$Root/installer/setup.iss"
 if (Test-Path $IssPath) {
     $iss = [System.IO.File]::ReadAllText($IssPath, [System.Text.Encoding]::UTF8)
@@ -96,8 +73,8 @@ if (Test-Path $IssPath) {
     Write-Host "  installer/setup.iss not found, skipping" -ForegroundColor DarkYellow
 }
 
-# ── 4. dotnet publish ─────────────────────────────────────────────
-Write-Host "`n[4/8] Publishing..." -ForegroundColor Yellow
+# ── 3. dotnet publish ─────────────────────────────────────────────
+Write-Host "`n[3/6] Publishing..." -ForegroundColor Yellow
 $PublishDir = "$Root/publish"
 if (Test-Path $PublishDir) { Remove-Item -Recurse -Force $PublishDir }
 dotnet publish "$Root/src/DesktopTranslation/DesktopTranslation.csproj" `
@@ -106,8 +83,8 @@ dotnet publish "$Root/src/DesktopTranslation/DesktopTranslation.csproj" `
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
 Write-Host "  Published to $PublishDir"
 
-# ── 5. Inno Setup compile ────────────────────────────────────────
-Write-Host "`n[5/8] Compiling installer..." -ForegroundColor Yellow
+# ── 4. Inno Setup compile ────────────────────────────────────────
+Write-Host "`n[4/6] Compiling installer..." -ForegroundColor Yellow
 $IsccPaths = @(
     "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe",
     "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
@@ -120,22 +97,21 @@ if ($Iscc) {
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup compilation failed" }
     Write-Host "  Installer compiled"
 } else {
-    Write-Host "  ISCC.exe not found, skipping installer compilation" -ForegroundColor DarkYellow
+    throw "ISCC.exe not found. Install Inno Setup 6 first."
 }
 
-# ── 6. Git commit and tag ────────────────────────────────────────
-Write-Host "`n[6/8] Git commit and tag..." -ForegroundColor Yellow
+# ── 5. Git commit and tag ────────────────────────────────────────
+Write-Host "`n[5/6] Git commit and tag..." -ForegroundColor Yellow
 Push-Location $Root
 git add src/DesktopTranslation/DesktopTranslation.csproj
 git add installer/setup.iss
-if (Test-Path "$Root/website/index.html") { git add website/index.html }
 git commit -m "release: v$Version"
 git tag "v$Version"
 git push origin master --tags
 Pop-Location
 
-# ── 7. GitHub Release ─────────────────────────────────────────────
-Write-Host "`n[7/8] Creating GitHub release..." -ForegroundColor Yellow
+# ── 6. GitHub Release ─────────────────────────────────────────────
+Write-Host "`n[6/6] Creating GitHub release..." -ForegroundColor Yellow
 $SetupExe = "$Root/dist/DesktopTranslation-v$Version-Setup.exe"
 if (Test-Path $SetupExe) {
     & $GhExe release create "v$Version" $SetupExe `
@@ -144,20 +120,7 @@ if (Test-Path $SetupExe) {
     if ($LASTEXITCODE -ne 0) { throw "gh release create failed" }
     Write-Host "  GitHub release v$Version created"
 } else {
-    Write-Host "  Setup exe not found at $SetupExe, skipping release" -ForegroundColor DarkYellow
-}
-
-# ── 8. Deploy website ─────────────────────────────────────────────
-Write-Host "`n[8/8] Deploying website..." -ForegroundColor Yellow
-$WebDir = "$Root/website"
-if (Test-Path $WebDir) {
-    Push-Location $WebDir
-    npx wrangler pages deploy . --project-name desktop-translation --branch main --commit-dirty=true
-    if ($LASTEXITCODE -ne 0) { Write-Host "  wrangler deploy failed" -ForegroundColor Red }
-    else { Write-Host "  Website deployed" }
-    Pop-Location
-} else {
-    Write-Host "  Skipping website deploy (missing website dir)" -ForegroundColor DarkYellow
+    throw "Setup exe not found at $SetupExe"
 }
 
 Write-Host "`n=== Release v$Version complete ===" -ForegroundColor Green
