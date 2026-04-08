@@ -65,20 +65,20 @@ Write-Host "  csproj version set to $Version"
 Write-Host "`n[2/8] Updating website..." -ForegroundColor Yellow
 $IndexPath = "$Root/website/index.html"
 if (Test-Path $IndexPath) {
-    $html = Get-Content $IndexPath -Raw
+    $html = [System.IO.File]::ReadAllText($IndexPath, [System.Text.Encoding]::UTF8)
 
-    # Update version badge
-    $html = $html -replace 'v[\d]+\.[\d]+\.[\d]+ — 免費開源', "v$Version — 免費開源"
+    # Update version badge (e.g. "v1.2.5 — 免費開源")
+    $html = $html -replace 'v[\d]+\.[\d]+\.[\d]+\s*\x{2014}\s*\x{514D}\x{8CBB}\x{958B}\x{6E90}', "v$Version — 免費開源"
 
     # Update download link href (GitHub Release direct download)
-    $html = $html -replace 'https://github\.com/air92316/DesktopTranslation/releases/latest/download/DesktopTranslation-v[\d]+\.[\d]+\.[\d]+-Setup\.exe',
-                           "https://github.com/air92316/DesktopTranslation/releases/latest/download/DesktopTranslation-v$Version-Setup.exe"
+    $html = $html -replace 'DesktopTranslation-v[\d]+\.[\d]+\.[\d]+-Setup\.exe',
+                           "DesktopTranslation-v$Version-Setup.exe"
 
-    # Update download button text
-    $html = $html -replace '免費下載 v[\d]+\.[\d]+\.[\d]+',
+    # Update download button text (e.g. "免費下載 v1.2.5")
+    $html = $html -replace '\x{514D}\x{8CBB}\x{4E0B}\x{8F09}\s*v[\d]+\.[\d]+\.[\d]+',
                            "免費下載 v$Version"
 
-    Set-Content -Path $IndexPath -Value $html -NoNewline
+    [System.IO.File]::WriteAllText($IndexPath, $html, [System.Text.Encoding]::UTF8)
     Write-Host "  website index.html updated"
 } else {
     Write-Host "  website/index.html not found, skipping" -ForegroundColor DarkYellow
