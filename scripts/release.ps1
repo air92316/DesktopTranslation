@@ -56,9 +56,9 @@ Write-Host "  All checks passed" -ForegroundColor Green
 # ── 1. Update csproj version ─────────────────────────────────────
 Write-Host "`n[1/8] Updating csproj version..." -ForegroundColor Yellow
 $CsprojPath = "$Root/src/DesktopTranslation/DesktopTranslation.csproj"
-$csproj = Get-Content $CsprojPath -Raw
+$csproj = [System.IO.File]::ReadAllText($CsprojPath, [System.Text.Encoding]::UTF8)
 $csproj = $csproj -replace '<Version>[^<]+</Version>', "<Version>$Version</Version>"
-Set-Content -Path $CsprojPath -Value $csproj -NoNewline
+[System.IO.File]::WriteAllText($CsprojPath, $csproj, [System.Text.Encoding]::UTF8)
 Write-Host "  csproj version set to $Version"
 
 # ── 2. Update website version and download link ──────────────────
@@ -88,9 +88,9 @@ if (Test-Path $IndexPath) {
 Write-Host "`n[3/8] Updating Inno Setup script..." -ForegroundColor Yellow
 $IssPath = "$Root/installer/setup.iss"
 if (Test-Path $IssPath) {
-    $iss = Get-Content $IssPath -Raw
+    $iss = [System.IO.File]::ReadAllText($IssPath, [System.Text.Encoding]::UTF8)
     $iss = $iss -replace '#define MyAppVersion "[^"]*"', "#define MyAppVersion `"$Version`""
-    Set-Content -Path $IssPath -Value $iss -NoNewline
+    [System.IO.File]::WriteAllText($IssPath, $iss, [System.Text.Encoding]::UTF8)
     Write-Host "  setup.iss version set to $Version"
 } else {
     Write-Host "  installer/setup.iss not found, skipping" -ForegroundColor DarkYellow
