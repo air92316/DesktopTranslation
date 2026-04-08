@@ -38,3 +38,6 @@ dt-debug.log
 website/downloads/*.exe
 dist/
 CLAUDE.md
+
+## Graphify output
+graphify-out/

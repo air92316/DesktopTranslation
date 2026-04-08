@@ -129,7 +129,7 @@ git add installer/setup.iss
 if (Test-Path "$Root/website/index.html") { git add website/index.html }
 git commit -m "release: v$Version"
 git tag "v$Version"
-git push origin main --tags
+git push origin master --tags
 Pop-Location
 
 # ── 7. GitHub Release ─────────────────────────────────────────────
