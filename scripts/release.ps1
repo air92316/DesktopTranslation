@@ -68,14 +68,14 @@ if (Test-Path $IndexPath) {
     $html = [System.IO.File]::ReadAllText($IndexPath, [System.Text.Encoding]::UTF8)
 
     # Update version badge (e.g. "v1.2.5 — 免費開源")
-    $html = $html -replace 'v[\d]+\.[\d]+\.[\d]+\s*\x{2014}\s*\x{514D}\x{8CBB}\x{958B}\x{6E90}', "v$Version — 免費開源"
+    $html = $html -replace 'v[\d]+\.[\d]+\.[\d]+\s*\u2014\s*\u514D\u8CBB\u958B\u6E90', "v$Version — 免費開源"
 
     # Update download link href (GitHub Release direct download)
     $html = $html -replace 'DesktopTranslation-v[\d]+\.[\d]+\.[\d]+-Setup\.exe',
                            "DesktopTranslation-v$Version-Setup.exe"
 
     # Update download button text (e.g. "免費下載 v1.2.5")
-    $html = $html -replace '\x{514D}\x{8CBB}\x{4E0B}\x{8F09}\s*v[\d]+\.[\d]+\.[\d]+',
+    $html = $html -replace '\u514D\u8CBB\u4E0B\u8F09\s*v[\d]+\.[\d]+\.[\d]+',
                            "免費下載 v$Version"
 
     [System.IO.File]::WriteAllText($IndexPath, $html, [System.Text.Encoding]::UTF8)
