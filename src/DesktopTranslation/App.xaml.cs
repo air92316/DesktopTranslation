@@ -80,6 +80,9 @@ public partial class App : System.Windows.Application
             _updateService.CleanupOldInstallers();
             Debug.WriteLine("[STARTUP] Update service ready");
 
+            // Sync auto-start registry with settings (fixes stale/missing entries)
+            AutoStartService.SyncRegistry(_settings.AutoStart);
+
             // Tray icon
             _trayIconManager = new TrayIconManager(
                 onShowWindow: ShowTranslationWindow,

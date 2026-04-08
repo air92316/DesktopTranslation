@@ -22,12 +22,12 @@ public static class AutoStartService
         }
     }
 
-    public static void SetEnabled(bool enabled)
+    public static bool SetEnabled(bool enabled)
     {
         try
         {
-            using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
-            if (key == null) return;
+            using var key = Registry.CurrentUser.OpenSubKey(RunKey, writable: true)
+                            ?? Registry.CurrentUser.CreateSubKey(RunKey);
 
             if (enabled)
             {
@@ -35,19 +35,50 @@ public static class AutoStartService
                 if (string.IsNullOrEmpty(exePath))
                 {
                     Debug.WriteLine("AutoStart: ProcessPath is null, cannot register auto-start.");
-                    return;
+                    return false;
                 }
 
                 key.SetValue(AppName, $"\"{exePath}\"");
+                Debug.WriteLine($"AutoStart: Registered at \"{exePath}\"");
             }
             else
             {
                 key.DeleteValue(AppName, throwOnMissingValue: false);
+                Debug.WriteLine("AutoStart: Registry entry removed");
             }
+
+            return true;
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"AutoStart set failed: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Ensures the registry entry matches the current exe path.
+    /// Call on startup when settings indicate auto-start is enabled.
+    /// </summary>
+    public static void SyncRegistry(bool settingsEnabled)
+    {
+        if (!settingsEnabled) return;
+
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(RunKey);
+            var currentValue = key?.GetValue(AppName) as string;
+            var expectedValue = $"\"{Environment.ProcessPath}\"";
+
+            if (currentValue != expectedValue)
+            {
+                Debug.WriteLine($"AutoStart: Registry out of sync (was: {currentValue ?? "null"}, expected: {expectedValue}). Re-registering...");
+                SetEnabled(true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"AutoStart sync failed: {ex.Message}");
         }
     }
 }
