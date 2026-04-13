@@ -87,6 +87,10 @@
                                 <Setter TargetName="Bd" Property="Background"
                                         Value="{DynamicResource ButtonPressedBrush}"/>
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -227,8 +231,18 @@
                                   SelectionChanged="SourceLanguageCombo_SelectionChanged"
                                   VerticalContentAlignment="Center"/>
                         <Button x:Name="BtnTtsSource" Content="&#x1F50A;"
-                                Style="{StaticResource IconButton}" Click="TtsSource_Click"
-                                ToolTip="朗讀原文" Margin="4,0,0,0" FontSize="12"/>
+                                Click="TtsSource_Click"
+                                ToolTip="朗讀原文" Margin="4,0,0,0" FontSize="12">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=InputTextBox}" Value="">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                         <Button Content="&#x2715;" Style="{StaticResource IconButton}"
                                 Click="ClearInput_Click" ToolTip="清除"
                                 FontSize="10" Margin="2,0,0,0"/>
@@ -278,8 +292,18 @@
                                   SelectionChanged="TargetLanguageCombo_SelectionChanged"
                                   VerticalContentAlignment="Center"/>
                         <Button x:Name="BtnTtsTarget" Content="&#x1F50A;"
-                                Style="{StaticResource IconButton}" Click="TtsTarget_Click"
-                                ToolTip="朗讀翻譯" Margin="4,0,0,0" FontSize="12"/>
+                                Click="TtsTarget_Click"
+                                ToolTip="朗讀翻譯" Margin="4,0,0,0" FontSize="12">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=TranslationTextBox}" Value="">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                         <Button x:Name="CopyResultButton" Content="&#x1F4CB;" Style="{StaticResource IconButton}"
                                 Click="CopyResult_Click" ToolTip="複製翻譯結果"
                                 Margin="2,0,0,0" FontSize="12"/>

@@ -411,7 +411,16 @@ public partial class TranslationWindow : Window
     private void Pin_Click(object sender, RoutedEventArgs e)
     {
         Topmost = !Topmost;
-        BtnPin.Opacity = Topmost ? 1.0 : 0.5;
+        UpdatePinVisual();
+    }
+
+    private void UpdatePinVisual()
+    {
+        BtnPin.Opacity = 1.0;
+        BtnPin.Foreground = Topmost
+            ? (System.Windows.Media.Brush)FindResource("AccentPrimaryBrush")
+            : (System.Windows.Media.Brush)FindResource("TextSecondaryBrush");
+        BtnPin.ToolTip = Topmost ? "取消置頂" : "置頂";
     }
 
     // Minimize to tray
@@ -730,7 +739,7 @@ public partial class TranslationWindow : Window
         Width = w;
         Height = h;
         Topmost = settings.AlwaysOnTop;
-        BtnPin.Opacity = Topmost ? 1.0 : 0.5;
+        UpdatePinVisual();
     }
 
     private void SavePosition()
