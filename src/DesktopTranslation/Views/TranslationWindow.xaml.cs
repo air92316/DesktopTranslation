@@ -747,6 +747,17 @@ public partial class TranslationWindow : Window
         _settingsService.Save(updated);
     }
 
+    protected override void OnPreviewKeyDown(System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape)
+        {
+            HideWindow();
+            e.Handled = true;
+            return;
+        }
+        base.OnPreviewKeyDown(e);
+    }
+
     protected override void OnClosed(EventArgs e)
     {
         CancelTranslationRequest();
