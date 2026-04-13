@@ -105,8 +105,21 @@
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}"
                                 CornerRadius="4" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Grid>
+                                <Border x:Name="HoverOverlay" Background="White" Opacity="0"
+                                        CornerRadius="4" Margin="-10,-3"/>
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
                         </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="HoverOverlay" Property="Opacity" Value="0.12"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="HoverOverlay" Property="Opacity" Value="0.06"/>
+                                <Setter TargetName="HoverOverlay" Property="Background" Value="Black"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -245,6 +258,11 @@
                                                 Value="{DynamicResource AccentPrimaryBrush}"/>
                                         <Setter Property="Foreground" Value="White"/>
                                     </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Bd" Property="Background"
+                                                Value="{DynamicResource AccentActiveBrush}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
                                 </ControlTemplate.Triggers>
                             </ControlTemplate>
                         </Button.Template>
@@ -262,7 +280,7 @@
                         <Button x:Name="BtnTtsTarget" Content="&#x1F50A;"
                                 Style="{StaticResource IconButton}" Click="TtsTarget_Click"
                                 ToolTip="朗讀翻譯" Margin="4,0,0,0" FontSize="12"/>
-                        <Button Content="&#x1F4CB;" Style="{StaticResource IconButton}"
+                        <Button x:Name="CopyResultButton" Content="&#x1F4CB;" Style="{StaticResource IconButton}"
                                 Click="CopyResult_Click" ToolTip="複製翻譯結果"
                                 Margin="2,0,0,0" FontSize="12"/>
                     </StackPanel>
@@ -281,19 +299,45 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Left Pane: Input -->
-                    <TextBox x:Name="InputTextBox" Grid.Column="0"
-                             Margin="16,10,12,10"
-                             TextWrapping="Wrap" AcceptsReturn="True"
-                             VerticalScrollBarVisibility="Auto"
-                             BorderThickness="0"
-                             Background="Transparent"
-                             Foreground="{DynamicResource TextPrimaryBrush}"
-                             CaretBrush="{DynamicResource TextPrimaryBrush}"
-                             SelectionBrush="{DynamicResource AccentPrimaryBrush}"
-                             FontFamily="Segoe UI" FontSize="14"
-                             Block.LineHeight="22.4"
-                             TextChanged="InputTextBox_TextChanged"
-                             Padding="0"/>
+                    <Grid Grid.Column="0">
+                        <TextBox x:Name="InputTextBox"
+                                 Margin="16,10,12,10"
+                                 TextWrapping="Wrap" AcceptsReturn="True"
+                                 VerticalScrollBarVisibility="Auto"
+                                 BorderThickness="0"
+                                 Background="Transparent"
+                                 Foreground="{DynamicResource TextPrimaryBrush}"
+                                 CaretBrush="{DynamicResource TextPrimaryBrush}"
+                                 SelectionBrush="{DynamicResource AccentPrimaryBrush}"
+                                 FontFamily="Segoe UI" FontSize="14"
+                                 Block.LineHeight="22.4"
+                                 TextChanged="InputTextBox_TextChanged"
+                                 Padding="0"/>
+                        <TextBlock Text="輸入或貼上文字…"
+                                   Margin="16,10,12,10"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   FontFamily="Segoe UI"
+                                   FontSize="14"
+                                   LineHeight="22.4"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Top"
+                                   IsHitTestVisible="False">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Text, ElementName=InputTextBox}" Value=""/>
+                                                <Condition Binding="{Binding IsKeyboardFocusWithin, ElementName=InputTextBox}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
 
                     <!-- Vertical Separator -->
                     <Border Grid.Column="1" Background="{DynamicResource SeparatorBrush}"
@@ -393,7 +437,8 @@
                     <ListBox x:Name="HistoryListBox" Grid.Row="1"
                              Visibility="Collapsed" MaxHeight="200"
                              Background="Transparent" BorderThickness="0"
-                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             SelectionChanged="HistoryListBox_SelectionChanged">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem">
                                 <Setter Property="Padding" Value="14,6"/>
@@ -410,6 +455,10 @@
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter TargetName="Bd" Property="Background"
                                                             Value="{DynamicResource ButtonHoverBrush}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background"
+                                                            Value="{DynamicResource AccentSubtleBrush}"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>

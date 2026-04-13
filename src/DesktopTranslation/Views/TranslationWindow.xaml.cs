@@ -15,13 +15,14 @@ public partial class TranslationWindow : Window
     private readonly HistoryService _historyService;
     private readonly SettingsService _settingsService;
     private readonly DispatcherTimer _debounceTimer;
+    private readonly object _translationCtsLock = new();
 
     private string _currentSourceText = "";
     private string _currentTargetLanguage = "zh-TW";
     private string _currentSourceLanguage = "";
     private bool _historyExpanded;
-    private bool _isTranslating;
     private bool _suppressLanguageChangeEvent;
+    private CancellationTokenSource? _translationCts;
 
     // Language options: (code, display name)
     private static readonly (string Code, string Name)[] SourceLanguages =
@@ -213,19 +214,18 @@ public partial class TranslationWindow : Window
 
     private async Task TranslateAsync(string text, string targetLanguage)
     {
-        if (_isTranslating)
-            return;
-        _isTranslating = true;
+        var requestCts = StartTranslationRequest();
+        var requestToken = requestCts.Token;
+        var selectedSourceCode = GetSelectedSourceCode();
+        _currentSourceLanguage = selectedSourceCode == "auto" ? "" : selectedSourceCode;
 
         try
         {
             ShowLoading(true);
             ErrorPanel.Visibility = Visibility.Collapsed;
             TranslationTextBox.Text = "";
-            var result = await _translationService.TranslateAsync(text, targetLanguage);
-
-            ShowLoading(false);
-            _isTranslating = false;
+            var result = await _translationService.TranslateAsync(text, targetLanguage, requestToken);
+            requestToken.ThrowIfCancellationRequested();
 
             if (result.IsSuccess)
             {
@@ -263,13 +263,66 @@ public partial class TranslationWindow : Window
                 ErrorText.Text = result.ErrorMessage ?? "翻譯失敗";
             }
         }
+        catch (OperationCanceledException) when (requestToken.IsCancellationRequested)
+        {
+            // A newer translation request superseded this one.
+        }
         catch (Exception)
         {
-            ShowLoading(false);
-            _isTranslating = false;
             ErrorPanel.Visibility = Visibility.Visible;
             ErrorText.Text = "翻譯時發生錯誤";
         }
+        finally
+        {
+            if (CompleteTranslationRequest(requestCts))
+            {
+                ShowLoading(false);
+                requestCts.Dispose();
+            }
+        }
+    }
+
+    private CancellationTokenSource StartTranslationRequest()
+    {
+        var currentRequest = new CancellationTokenSource();
+        CancellationTokenSource? previousRequest;
+
+        lock (_translationCtsLock)
+        {
+            previousRequest = _translationCts;
+            _translationCts = currentRequest;
+        }
+
+        previousRequest?.Cancel();
+        previousRequest?.Dispose();
+
+        return currentRequest;
+    }
+
+    private bool CompleteTranslationRequest(CancellationTokenSource requestCts)
+    {
+        lock (_translationCtsLock)
+        {
+            if (!ReferenceEquals(_translationCts, requestCts))
+                return false;
+
+            _translationCts = null;
+            return true;
+        }
+    }
+
+    private void CancelTranslationRequest()
+    {
+        CancellationTokenSource? requestToCancel;
+
+        lock (_translationCtsLock)
+        {
+            requestToCancel = _translationCts;
+            _translationCts = null;
+        }
+
+        requestToCancel?.Cancel();
+        requestToCancel?.Dispose();
     }
 
     private Storyboard? _shimmerStoryboard;
@@ -390,8 +443,15 @@ public partial class TranslationWindow : Window
     {
         if (!string.IsNullOrEmpty(InputTextBox.Text))
         {
-            var lang = _currentTargetLanguage == "en" ? "zh" : "en";
-            _ttsService.Speak(InputTextBox.Text, lang);
+            var sourceLanguage = !string.IsNullOrWhiteSpace(_currentSourceLanguage)
+                && !string.Equals(_currentSourceLanguage, "unknown", StringComparison.OrdinalIgnoreCase)
+                    ? _currentSourceLanguage
+                    : GetSelectedSourceCode();
+
+            if (string.IsNullOrWhiteSpace(sourceLanguage) || sourceLanguage == "auto")
+                return;
+
+            _ttsService.Speak(InputTextBox.Text, sourceLanguage);
         }
     }
 
@@ -406,9 +466,12 @@ public partial class TranslationWindow : Window
     // Clear input
     private void ClearInput_Click(object sender, RoutedEventArgs e)
     {
+        CancelTranslationRequest();
+        ShowLoading(false);
         InputTextBox.Text = "";
         TranslationTextBox.Text = "";
         ErrorPanel.Visibility = Visibility.Collapsed;
+        _currentSourceLanguage = "";
         SetSourceLanguageCombo("auto");
         // Reset auto label
         if (SourceLanguageCombo.Items[0] is System.Windows.Controls.ComboBoxItem autoItem)
@@ -421,6 +484,40 @@ public partial class TranslationWindow : Window
         if (!string.IsNullOrEmpty(TranslationTextBox.Text))
         {
             System.Windows.Clipboard.SetText(TranslationTextBox.Text);
+            _ = ShowCopySuccessAsync(sender as System.Windows.Controls.Button ?? CopyResultButton);
+        }
+    }
+
+    private async Task ShowCopySuccessAsync(System.Windows.Controls.Button? button)
+    {
+        if (button is null)
+            return;
+
+        button.IsEnabled = false;
+
+        try
+        {
+            var successBrush =
+                TryFindResource("SuccessBrush") as System.Windows.Media.Brush ??
+                button.Foreground ??
+                TryFindResource("TextSecondaryBrush") as System.Windows.Media.Brush ??
+                System.Windows.Media.Brushes.LimeGreen;
+
+            button.Content = new System.Windows.Controls.TextBlock
+            {
+                Text = "\u2713",
+                Foreground = successBrush,
+                FontSize = button.FontSize,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = System.Windows.VerticalAlignment.Center
+            };
+
+            await Task.Delay(1500);
+        }
+        finally
+        {
+            button.Content = "\U0001F4CB";
+            button.IsEnabled = true;
         }
     }
 
@@ -505,6 +602,8 @@ public partial class TranslationWindow : Window
     // Input debounce for re-translation on edit
     private void InputTextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
     {
+        var selectedSourceCode = GetSelectedSourceCode();
+        _currentSourceLanguage = selectedSourceCode == "auto" ? "" : selectedSourceCode;
         _debounceTimer.Stop();
         _debounceTimer.Start();
     }
@@ -543,6 +642,37 @@ public partial class TranslationWindow : Window
         {
             HistoryListBox.ItemsSource = _historyService.GetAll().Reverse().ToList();
         }
+    }
+
+    private void HistoryListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (HistoryListBox.SelectedItem is not TranslationHistoryEntry entry)
+            return;
+
+        var sourceCode = string.IsNullOrEmpty(entry.SourceLanguage) || entry.SourceLanguage == "unknown"
+            ? "auto"
+            : entry.SourceLanguage;
+
+        // Stop debounce timer before changing text to prevent double translation
+        _debounceTimer.Stop();
+
+        InputTextBox.Text = entry.SourceText;
+        _currentSourceText = entry.SourceText;
+
+        SetSourceLanguageCombo(sourceCode);
+        SetTargetLanguageCombo(entry.TargetLanguage);
+        _currentTargetLanguage = entry.TargetLanguage;
+
+        if (SourceLanguageCombo.Items[0] is System.Windows.Controls.ComboBoxItem autoItem)
+            autoItem.Content = "自動偵測";
+
+        _historyExpanded = false;
+        HistoryListBox.Visibility = Visibility.Collapsed;
+        HistoryArrow.Text = "\u25B2";
+
+        HistoryListBox.SelectedItem = null;
+
+        _ = TranslateAsync(entry.SourceText, entry.TargetLanguage);
     }
 
     private void UpdateHistoryLabel()
@@ -615,5 +745,11 @@ public partial class TranslationWindow : Window
             AlwaysOnTop = Topmost
         };
         _settingsService.Save(updated);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        CancelTranslationRequest();
+        base.OnClosed(e);
     }
 }
