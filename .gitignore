@@ -41,3 +41,9 @@ CLAUDE.md
 
 ## Graphify output
 graphify-out/
+
+## Claude Code (local settings, not for repo)
+.claude/
+
+## self-optimize local log
+OPTIMIZATION-LOG.md
