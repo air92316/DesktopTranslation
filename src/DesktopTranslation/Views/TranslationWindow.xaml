@@ -196,6 +196,7 @@
                             <Button x:Name="BtnLlm" Content="LLM"
                                     Click="EngineLlm_Click"
                                     Style="{StaticResource SegmentButton}"
+                                    ToolTipService.ShowOnDisabled="True"
                                     Background="{DynamicResource SegmentInactiveBrush}"
                                     Foreground="{DynamicResource SegmentInactiveTextBrush}"/>
                         </StackPanel>
@@ -322,9 +323,19 @@
                                 </Style>
                             </Button.Style>
                         </Button>
-                        <Button x:Name="CopyResultButton" Content="&#x1F4CB;" Style="{StaticResource IconButton}"
+                        <Button x:Name="CopyResultButton" Content="&#x1F4CB;"
                                 Click="CopyResult_Click" ToolTip="複製翻譯結果"
-                                Margin="2,0,0,0" FontSize="12"/>
+                                Margin="2,0,0,0" FontSize="12">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=TranslationTextBox}" Value="">
+                                            <Setter Property="IsEnabled" Value="False"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                     </StackPanel>
                 </Grid>
 

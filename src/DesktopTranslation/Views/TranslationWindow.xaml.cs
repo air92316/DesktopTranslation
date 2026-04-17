@@ -388,6 +388,7 @@ public partial class TranslationWindow : Window
         // LLM button disabled state when no API key
         BtnLlm.IsEnabled = _llmAvailable;
         BtnLlm.Opacity = _llmAvailable ? 1.0 : 0.4;
+        BtnLlm.ToolTip = _llmAvailable ? null : "請先在設定中輸入 API Key 才能使用 LLM 翻譯";
         if (!_llmAvailable && engine == "llm")
             engine = "google"; // fallback
 
@@ -450,7 +451,7 @@ public partial class TranslationWindow : Window
     // TTS
     private void TtsSource_Click(object sender, RoutedEventArgs e)
     {
-        if (!string.IsNullOrEmpty(InputTextBox.Text))
+        if (!string.IsNullOrWhiteSpace(InputTextBox.Text))
         {
             var sourceLanguage = !string.IsNullOrWhiteSpace(_currentSourceLanguage)
                 && !string.Equals(_currentSourceLanguage, "unknown", StringComparison.OrdinalIgnoreCase)
@@ -466,7 +467,7 @@ public partial class TranslationWindow : Window
 
     private void TtsTarget_Click(object sender, RoutedEventArgs e)
     {
-        if (!string.IsNullOrEmpty(TranslationTextBox.Text))
+        if (!string.IsNullOrWhiteSpace(TranslationTextBox.Text))
         {
             _ttsService.Speak(TranslationTextBox.Text, _currentTargetLanguage);
         }
@@ -526,7 +527,9 @@ public partial class TranslationWindow : Window
         finally
         {
             button.Content = "\U0001F4CB";
-            button.IsEnabled = true;
+            // ClearValue 而非 IsEnabled=true：本地值優先級 > style trigger，
+            // 直接 set true 會讓 DataTrigger 永久失效，之後 TranslationTextBox 清空也不會 disabled
+            button.ClearValue(UIElement.IsEnabledProperty);
         }
     }
 
