@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -10,6 +11,10 @@ public partial class SettingsWindow : Window
 {
     private readonly SettingsService _settingsService;
     private readonly Action<AppSettings> _onSettingsApplied;
+    private AppSettings? _loadedSnapshot;
+    private bool _allowClose;
+    private bool _closePromptOpen;
+    private bool _saveFeedbackInProgress;
 
     public SettingsWindow(SettingsService settingsService, Action<AppSettings> onSettingsApplied)
     {
@@ -60,14 +65,17 @@ public partial class SettingsWindow : Window
             _ => 0
         };
         CbTheme.SelectedIndex = themeIndex;
+
+        // snapshot after UI values are set; ReadCurrentSettings must see the same state
+        _loadedSnapshot = ReadCurrentSettings();
     }
 
-    private void Save_Click(object sender, RoutedEventArgs e)
+    private AppSettings ReadCurrentSettings()
     {
-        var settings = _settingsService.Load();
+        var baseline = _loadedSnapshot ?? _settingsService.Load();
         var themeTag = (CbTheme.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "system";
 
-        var updated = settings with
+        return baseline with
         {
             Engine = RbLlm.IsChecked == true ? "llm" : "google",
             LlmProvider = CbProvider.SelectedIndex == 1 ? "openai" : "claude",
@@ -78,16 +86,132 @@ public partial class SettingsWindow : Window
             TtsSpeed = Math.Round(SliderSpeed.Value, 1),
             Theme = themeTag
         };
+    }
+
+    private bool IsDirty()
+    {
+        if (_loadedSnapshot is null) return false;
+        return ReadCurrentSettings() != _loadedSnapshot;
+    }
+
+    private async void Save_Click(object sender, RoutedEventArgs e)
+    {
+        await SaveAndCloseAsync();
+    }
+
+    private async Task SaveAndCloseAsync()
+    {
+        var updated = ReadCurrentSettings();
 
         _settingsService.Save(updated);
         AutoStartService.SetEnabled(updated.AutoStart);
         _onSettingsApplied(updated);
+        _loadedSnapshot = updated;
+
+        await ShowSaveSuccessAsync();
+
+        _allowClose = true;
         Close();
+    }
+
+    private async Task ShowSaveSuccessAsync()
+    {
+        _saveFeedbackInProgress = true;
+
+        var originalContent = BtnSave.Content;
+        var originalBackground = BtnSave.Background;
+        var originalForeground = BtnSave.Foreground;
+        BtnSave.IsEnabled = false;
+
+        try
+        {
+            var successBrush =
+                TryFindResource("SuccessBrush") as System.Windows.Media.Brush ??
+                System.Windows.Media.Brushes.SeaGreen;
+            var textInverseBrush =
+                TryFindResource("TextInverseBrush") as System.Windows.Media.Brush ??
+                System.Windows.Media.Brushes.White;
+
+            BtnSave.Content = "\u2713 已儲存";
+            BtnSave.Background = successBrush;
+            BtnSave.Foreground = textInverseBrush;
+
+            await Task.Delay(1500);
+        }
+        finally
+        {
+            BtnSave.Content = originalContent;
+            BtnSave.ClearValue(System.Windows.Controls.Button.BackgroundProperty);
+            BtnSave.ClearValue(System.Windows.Controls.Button.ForegroundProperty);
+            BtnSave.ClearValue(UIElement.IsEnabledProperty);
+            _saveFeedbackInProgress = false;
+        }
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    protected override async void OnClosing(CancelEventArgs e)
+    {
+        // Allow programmatic close after Save success or explicit discard
+        if (_allowClose)
+        {
+            base.OnClosing(e);
+            return;
+        }
+
+        // Block close while the save-success animation is still running
+        if (_saveFeedbackInProgress)
+        {
+            e.Cancel = true;
+            return;
+        }
+
+        // Prevent MessageBox re-entry while a dirty prompt is already open
+        if (_closePromptOpen)
+        {
+            e.Cancel = true;
+            return;
+        }
+
+        if (!IsDirty())
+        {
+            base.OnClosing(e);
+            return;
+        }
+
+        e.Cancel = true;
+        _closePromptOpen = true;
+
+        MessageBoxResult result;
+        try
+        {
+            result = System.Windows.MessageBox.Show(
+                this,
+                "設定已變更但尚未儲存。\n\n是：儲存並關閉\n否：放棄變更並關閉\n取消：返回設定視窗",
+                "尚未儲存的設定",
+                MessageBoxButton.YesNoCancel,
+                MessageBoxImage.Warning,
+                MessageBoxResult.Yes);
+        }
+        finally
+        {
+            _closePromptOpen = false;
+        }
+
+        switch (result)
+        {
+            case MessageBoxResult.Yes:
+                await SaveAndCloseAsync();
+                break;
+            case MessageBoxResult.No:
+                _allowClose = true;
+                Close();
+                break;
+            // Cancel: stay open, e.Cancel already set true
+        }
     }
 
     private void SliderInterval_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)

@@ -267,9 +267,9 @@
             <!-- Action Buttons -->
             <Border Grid.Row="2" Padding="16,10,16,14">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="取消" Width="80" Margin="0,0,8,0" IsCancel="True"
+                    <Button Content="取消" Width="100" Margin="0,0,8,0" IsCancel="True"
                             Style="{StaticResource SecondaryButton}" Click="Cancel_Click"/>
-                    <Button Content="儲存" Width="80" IsDefault="True"
+                    <Button x:Name="BtnSave" Content="儲存" Width="100" IsDefault="True"
                             Style="{StaticResource PrimaryButton}" Click="Save_Click"/>
                 </StackPanel>
             </Border>
