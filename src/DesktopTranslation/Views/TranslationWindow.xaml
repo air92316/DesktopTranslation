@@ -191,6 +191,7 @@
                             <Button x:Name="BtnGoogle" Content="Google"
                                     Click="EngineGoogle_Click"
                                     Style="{StaticResource SegmentButton}"
+                                    ToolTip="Google 翻譯 (Alt+G)"
                                     Background="{DynamicResource SegmentActiveBrush}"
                                     Foreground="{DynamicResource SegmentActiveTextBrush}"/>
                             <Button x:Name="BtnLlm" Content="LLM"
@@ -265,7 +266,7 @@
                     <Button x:Name="BtnSwap" Grid.Column="1"
                             Content="&#x21C4;"
                             Click="SwapLanguages_Click"
-                            ToolTip="互換語言"
+                            ToolTip="互換語言 (Ctrl+L)"
                             Width="28" Height="28"
                             Margin="12,0"
                             FontSize="14" FontWeight="Bold"
@@ -324,7 +325,7 @@
                             </Button.Style>
                         </Button>
                         <Button x:Name="CopyResultButton" Content="&#x1F4CB;"
-                                Click="CopyResult_Click" ToolTip="複製翻譯結果"
+                                Click="CopyResult_Click" ToolTip="複製翻譯結果 (Ctrl+Shift+Insert)"
                                 Margin="2,0,0,0" FontSize="12">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
@@ -422,7 +423,9 @@
                             <TextBlock x:Name="ErrorText" Foreground="{DynamicResource ErrorBrush}"
                                        TextWrapping="Wrap" FontSize="13"/>
                             <TextBlock Margin="0,4,0,0">
-                                <Hyperlink Click="Retry_Click" Foreground="{DynamicResource AccentPrimaryBrush}">
+                                <Hyperlink Click="Retry_Click"
+                                           Foreground="{DynamicResource AccentPrimaryBrush}"
+                                           ToolTip="重試翻譯 (F5)">
                                     重試
                                 </Hyperlink>
                             </TextBlock>

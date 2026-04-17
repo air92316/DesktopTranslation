@@ -80,8 +80,39 @@ public partial class TranslationWindow : Window
         _debounceTimer.Tick += DebounceTimer_Tick;
 
         InitLanguageComboBoxes();
+        RegisterKeyboardShortcuts();
         Loaded += OnLoaded;
         SizeChanged += OnSizeChanged;
+    }
+
+    private void RegisterKeyboardShortcuts()
+    {
+        // Ctrl+L: Swap languages
+        InputBindings.Add(new KeyBinding(
+            new Helpers.RelayCommand(_ => SwapLanguages_Click(this, new RoutedEventArgs())),
+            new KeyGesture(Key.L, ModifierKeys.Control)));
+
+        // Ctrl+Shift+Insert: Copy translation result
+        // Uses Insert rather than C to avoid VK_C triggering HotkeyService double-copy hook,
+        // which checks only VK_C + _ctrlPressed without inspecting Shift/Alt modifiers.
+        InputBindings.Add(new KeyBinding(
+            new Helpers.RelayCommand(_ => CopyResult_Click(this, new RoutedEventArgs())),
+            new KeyGesture(Key.Insert, ModifierKeys.Control | ModifierKeys.Shift)));
+
+        // F5: Retry translation
+        InputBindings.Add(new KeyBinding(
+            new Helpers.RelayCommand(_ => Retry_Click(this, new RoutedEventArgs())),
+            new KeyGesture(Key.F5)));
+
+        // Alt+G: Switch to Google engine
+        InputBindings.Add(new KeyBinding(
+            new Helpers.RelayCommand(_ => EngineGoogle_Click(this, new RoutedEventArgs())),
+            new KeyGesture(Key.G, ModifierKeys.Alt)));
+
+        // Alt+L: Switch to LLM engine
+        InputBindings.Add(new KeyBinding(
+            new Helpers.RelayCommand(_ => EngineLlm_Click(this, new RoutedEventArgs())),
+            new KeyGesture(Key.L, ModifierKeys.Alt)));
     }
 
     private void InitLanguageComboBoxes()
@@ -388,7 +419,9 @@ public partial class TranslationWindow : Window
         // LLM button disabled state when no API key
         BtnLlm.IsEnabled = _llmAvailable;
         BtnLlm.Opacity = _llmAvailable ? 1.0 : 0.4;
-        BtnLlm.ToolTip = _llmAvailable ? null : "請先在設定中輸入 API Key 才能使用 LLM 翻譯";
+        BtnLlm.ToolTip = _llmAvailable
+            ? "LLM 翻譯 (Alt+L)"
+            : "請先在設定中輸入 API Key 才能使用 LLM 翻譯";
         if (!_llmAvailable && engine == "llm")
             engine = "google"; // fallback
 
