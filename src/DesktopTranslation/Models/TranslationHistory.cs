@@ -6,4 +6,9 @@ public record TranslationHistoryEntry(
     string SourceLanguage,
     string TargetLanguage,
     string Engine,
-    DateTime Timestamp);
+    DateTime Timestamp)
+{
+    public DateTime TimestampLocal => Timestamp.Kind == DateTimeKind.Utc
+        ? Timestamp.ToLocalTime()
+        : Timestamp;
+}
