@@ -304,6 +304,8 @@ public partial class TranslationWindow : Window
                     _translationService.CurrentEngineName,
                     DateTime.UtcNow));
                 UpdateHistoryLabel();
+                if (_historyExpanded)
+                    RefreshHistoryList();
             }
             else
             {
@@ -746,13 +748,44 @@ public partial class TranslationWindow : Window
     private void ToggleHistory_Click(object sender, RoutedEventArgs e)
     {
         _historyExpanded = !_historyExpanded;
-        HistoryListBox.Visibility = _historyExpanded ? Visibility.Visible : Visibility.Collapsed;
         HistoryArrow.Text = _historyExpanded ? "\u25BC" : "\u25B2";
+        BtnClearHistory.Visibility = _historyExpanded ? Visibility.Visible : Visibility.Collapsed;
 
         if (_historyExpanded)
+            RefreshHistoryList();
+        else
         {
-            HistoryListBox.ItemsSource = _historyService.GetAll().Reverse().ToList();
+            HistoryListBox.Visibility = Visibility.Collapsed;
+            HistoryEmptyState.Visibility = Visibility.Collapsed;
         }
+    }
+
+    private void RefreshHistoryList()
+    {
+        var entries = _historyService.GetAll().Reverse().ToList();
+        HistoryListBox.ItemsSource = entries;
+
+        var isEmpty = entries.Count == 0;
+        HistoryListBox.Visibility = isEmpty ? Visibility.Collapsed : Visibility.Visible;
+        HistoryEmptyState.Visibility = isEmpty ? Visibility.Visible : Visibility.Collapsed;
+        BtnClearHistory.IsEnabled = !isEmpty;
+    }
+
+    private void ClearHistory_Click(object sender, RoutedEventArgs e)
+    {
+        var confirm = System.Windows.MessageBox.Show(
+            this,
+            "確定要清空所有歷史紀錄嗎？此操作無法復原。",
+            "清空歷史",
+            MessageBoxButton.OKCancel,
+            MessageBoxImage.Warning,
+            MessageBoxResult.Cancel);
+        if (confirm != MessageBoxResult.OK) return;
+
+        _historyService.Clear();
+        UpdateHistoryLabel();
+        if (_historyExpanded)
+            RefreshHistoryList();
     }
 
     private void HistoryListBox_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -764,26 +797,38 @@ public partial class TranslationWindow : Window
             ? "auto"
             : entry.SourceLanguage;
 
-        // Stop debounce timer before changing text to prevent double translation
+        // Cancel any in-flight translation + debounce to ensure cached result isn't overwritten.
+        // Set _currentSourceText BEFORE changing InputTextBox.Text so the debounce timer tick
+        // sees newText == _currentSourceText and skips a redundant translation.
+        CancelTranslationRequest();
         _debounceTimer.Stop();
-
-        InputTextBox.Text = entry.SourceText;
         _currentSourceText = entry.SourceText;
+        _currentTargetLanguage = entry.TargetLanguage;
+        // Normalize "unknown" / "auto" to empty so downstream consumers
+        // (TtsSource_Click, SwapLanguages_Click) don't need repeat guards.
+        _currentSourceLanguage = sourceCode == "auto" ? "" : sourceCode;
 
+        _suppressLanguageChangeEvent = true;
+        InputTextBox.Text = entry.SourceText;
         SetSourceLanguageCombo(sourceCode);
         SetTargetLanguageCombo(entry.TargetLanguage);
-        _currentTargetLanguage = entry.TargetLanguage;
+        _suppressLanguageChangeEvent = false;
 
         if (SourceLanguageCombo.Items[0] is System.Windows.Controls.ComboBoxItem autoItem)
             autoItem.Content = "自動偵測";
 
+        // Direct cache replay — skip API call, use the stored TranslatedText.
+        TranslationTextBox.Text = entry.TranslatedText;
+        ClearErrorDisplay();
+        SetResultPaneState(ResultPaneState.Success);
+
+        // Collapse panel after selection (previous UX contract preserved)
         _historyExpanded = false;
         HistoryListBox.Visibility = Visibility.Collapsed;
+        HistoryEmptyState.Visibility = Visibility.Collapsed;
+        BtnClearHistory.Visibility = Visibility.Collapsed;
         HistoryArrow.Text = "\u25B2";
-
         HistoryListBox.SelectedItem = null;
-
-        _ = TranslateAsync(entry.SourceText, entry.TargetLanguage);
     }
 
     private void UpdateHistoryLabel()
