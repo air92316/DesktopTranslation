@@ -415,10 +415,10 @@ public partial class TranslationWindow : Window
         }
     }
 
-    private void ShowError(ErrorKind errorKind)
+    private void ShowError(ErrorKind errorKind, string? customMessage = null)
     {
         var normalizedErrorKind = errorKind == ErrorKind.None ? ErrorKind.Unknown : errorKind;
-        ErrorText.Text = GetErrorMessage(normalizedErrorKind);
+        ErrorText.Text = customMessage ?? GetErrorMessage(normalizedErrorKind);
         OpenSettingsActionText.Visibility = normalizedErrorKind == ErrorKind.ApiKey
             ? Visibility.Visible
             : Visibility.Collapsed;
@@ -459,9 +459,12 @@ public partial class TranslationWindow : Window
     {
         if (!_llmAvailable)
         {
-            System.Windows.MessageBox.Show(
-                "請先在「設定」中輸入 API Key 才能使用 LLM 翻譯。\n\n右鍵系統匣圖示 → 設定",
-                "LLM 未設定", MessageBoxButton.OK, MessageBoxImage.Information);
+            // BtnLlm 本身 disabled 時點不到，但 Alt+L InputBinding 會繞過 button IsEnabled。
+            // 改用 ErrorPanel in-panel 提示（Round 7 狀態機 + 開啟設定連結），取代 MessageBox。
+            ShowError(
+                ErrorKind.ApiKey,
+                "LLM 需先設定 API Key 才能使用");
+            SetResultPaneState(ResultPaneState.Error);
             return;
         }
         _translationService.SetEngine("llm");
