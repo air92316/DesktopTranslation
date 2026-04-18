@@ -644,15 +644,16 @@
                                                    TextTrimming="CharacterEllipsis"
                                                    Foreground="{DynamicResource AccentPrimaryBrush}" FontSize="12"/>
                                     </Grid>
-                                    <!-- Row 1: meta (time · engine), right-aligned small -->
+                                    <!-- Row 1: meta (time · engine), right-aligned small.
+                                         TimestampDisplay shows HH:mm same-day, MM/dd HH:mm else.
+                                         EngineDisplay title-cases "google" → "Google", "llm" → "LLM". -->
                                     <StackPanel Grid.Row="1" Orientation="Horizontal"
                                                 HorizontalAlignment="Right" Margin="0,2,0,0">
-                                        <TextBlock Text="{Binding TimestampLocal, StringFormat=HH:mm}"
-                                                   FontSize="10"
+                                        <TextBlock Text="{Binding TimestampDisplay}" FontSize="10"
                                                    Foreground="{DynamicResource TextTertiaryBrush}"/>
                                         <TextBlock Text=" · " Margin="4,0" FontSize="10"
                                                    Foreground="{DynamicResource TextTertiaryBrush}"/>
-                                        <TextBlock Text="{Binding Engine}" FontSize="10"
+                                        <TextBlock Text="{Binding EngineDisplay}" FontSize="10"
                                                    Foreground="{DynamicResource TextTertiaryBrush}"/>
                                     </StackPanel>
                                 </Grid>
