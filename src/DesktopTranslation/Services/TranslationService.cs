@@ -2,6 +2,7 @@ using System.Diagnostics;
 using DesktopTranslation.Models;
 using Polly;
 using Polly.Retry;
+using Polly.Timeout;
 
 namespace DesktopTranslation.Services;
 
@@ -50,6 +51,14 @@ public class TranslationService
             return await _retryPipeline.ExecuteAsync(
                 async token => await engine.TranslateAsync(text, targetLanguage, token),
                 ct);
+        }
+        catch (TimeoutRejectedException ex)
+        {
+            Debug.WriteLine($"Translation pipeline timeout: {ex}");
+            return new TranslationResult(
+                "", "unknown", false,
+                "Translation timed out.",
+                ErrorKind.Timeout);
         }
         catch (Exception ex)
         {

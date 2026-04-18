@@ -8,6 +8,14 @@ using DesktopTranslation.Services;
 
 namespace DesktopTranslation.Views;
 
+public enum ResultPaneState
+{
+    Idle,
+    Loading,
+    Success,
+    Error
+}
+
 public partial class TranslationWindow : Window
 {
     private readonly TranslationService _translationService;
@@ -248,23 +256,24 @@ public partial class TranslationWindow : Window
         var requestCts = StartTranslationRequest();
         var requestToken = requestCts.Token;
         var selectedSourceCode = GetSelectedSourceCode();
+        var resultPaneState = ResultPaneState.Loading;
+        var shouldAnimateResult = false;
         _currentSourceLanguage = selectedSourceCode == "auto" ? "" : selectedSourceCode;
+
+        TranslationTextBox.Text = "";
+        ClearErrorDisplay();
+        SetResultPaneState(ResultPaneState.Loading);
 
         try
         {
-            ShowLoading(true);
-            ErrorPanel.Visibility = Visibility.Collapsed;
-            TranslationTextBox.Text = "";
             var result = await _translationService.TranslateAsync(text, targetLanguage, requestToken);
             requestToken.ThrowIfCancellationRequested();
 
             if (result.IsSuccess)
             {
-                TranslationTextBox.Visibility = Visibility.Visible;
                 TranslationTextBox.Text = result.TranslatedText;
-
-                var resultFadeIn = (Storyboard)FindResource("ResultFadeInStoryboard");
-                resultFadeIn.Begin(this);
+                resultPaneState = ResultPaneState.Success;
+                shouldAnimateResult = true;
 
                 // Use local detector for display (Google's DetectedSourceLanguage is unreliable)
                 var localDetected = LanguageDetector.DetectSourceLanguage(text);
@@ -289,25 +298,30 @@ public partial class TranslationWindow : Window
             }
             else
             {
-                TranslationTextBox.Visibility = Visibility.Collapsed;
-                ErrorPanel.Visibility = Visibility.Visible;
-                ErrorText.Text = result.ErrorMessage ?? "翻譯失敗";
+                ShowError(result.ErrorKind);
+                resultPaneState = ResultPaneState.Error;
             }
         }
         catch (OperationCanceledException) when (requestToken.IsCancellationRequested)
         {
             // A newer translation request superseded this one.
+            resultPaneState = ResultPaneState.Idle;
         }
         catch (Exception)
         {
-            ErrorPanel.Visibility = Visibility.Visible;
-            ErrorText.Text = "翻譯時發生錯誤";
+            ShowError(ErrorKind.Unknown);
+            resultPaneState = ResultPaneState.Error;
         }
         finally
         {
             if (CompleteTranslationRequest(requestCts))
             {
-                ShowLoading(false);
+                SetResultPaneState(resultPaneState);
+                if (shouldAnimateResult && resultPaneState == ResultPaneState.Success)
+                {
+                    var resultFadeIn = (Storyboard)FindResource("ResultFadeInStoryboard");
+                    resultFadeIn.Begin(this);
+                }
                 requestCts.Dispose();
             }
         }
@@ -358,17 +372,24 @@ public partial class TranslationWindow : Window
 
     private Storyboard? _shimmerStoryboard;
 
-    private void ShowLoading(bool show)
+    private void SetResultPaneState(ResultPaneState state)
     {
-        ShimmerPanel.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-        TranslationTextBox.Visibility = show ? Visibility.Collapsed : Visibility.Visible;
+        ShimmerPanel.Visibility = state == ResultPaneState.Loading
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        ErrorPanel.Visibility = state == ResultPaneState.Error
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        TranslationTextBox.Visibility = state == ResultPaneState.Success
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
         try
         {
-            if (show)
+            if (state == ResultPaneState.Loading)
             {
                 // Use Begin() without containingObject to avoid NameScope lookup issues
-                _shimmerStoryboard = (Storyboard)FindResource("ShimmerStoryboard");
+                _shimmerStoryboard ??= (Storyboard)FindResource("ShimmerStoryboard");
                 _shimmerStoryboard.Begin(ShimmerPanel, true);
             }
             else
@@ -382,6 +403,30 @@ public partial class TranslationWindow : Window
             // Don't let shimmer animation failure block translation
         }
     }
+
+    private void ShowError(ErrorKind errorKind)
+    {
+        var normalizedErrorKind = errorKind == ErrorKind.None ? ErrorKind.Unknown : errorKind;
+        ErrorText.Text = GetErrorMessage(normalizedErrorKind);
+        OpenSettingsActionText.Visibility = normalizedErrorKind == ErrorKind.ApiKey
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private void ClearErrorDisplay()
+    {
+        ErrorText.Text = "";
+        OpenSettingsActionText.Visibility = Visibility.Collapsed;
+    }
+
+    private static string GetErrorMessage(ErrorKind errorKind) => errorKind switch
+    {
+        ErrorKind.Network => "網路連線失敗，請檢查網路設定",
+        ErrorKind.ApiKey => "API 金鑰無效，請重新設定",
+        ErrorKind.RateLimit => "請求頻率過高，請稍後再試",
+        ErrorKind.Timeout => "翻譯逾時，請重試",
+        _ => "翻譯失敗，請重試"
+    };
 
     // Title bar drag
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -510,10 +555,10 @@ public partial class TranslationWindow : Window
     private void ClearInput_Click(object sender, RoutedEventArgs e)
     {
         CancelTranslationRequest();
-        ShowLoading(false);
         InputTextBox.Text = "";
         TranslationTextBox.Text = "";
-        ErrorPanel.Visibility = Visibility.Collapsed;
+        ClearErrorDisplay();
+        SetResultPaneState(ResultPaneState.Idle);
         _currentSourceLanguage = "";
         SetSourceLanguageCombo("auto");
         // Reset auto label
@@ -574,6 +619,12 @@ public partial class TranslationWindow : Window
     }
 
     // Swap source ↔ target languages and text
+    private void OpenSettings_Click(object sender, RoutedEventArgs e)
+    {
+        if (System.Windows.Application.Current is App app)
+            app.OpenSettings();
+    }
+
     private void SwapLanguages_Click(object sender, RoutedEventArgs e)
     {
         var translatedText = TranslationTextBox.Text;

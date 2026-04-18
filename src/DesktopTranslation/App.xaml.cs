@@ -176,7 +176,7 @@ public partial class App : System.Windows.Application
         }
     }
 
-    private void OpenSettings()
+    public void OpenSettings()
     {
         var settingsWindow = new SettingsWindow(_settingsService, OnSettingsApplied);
         settingsWindow.ShowDialog();
