@@ -387,6 +387,22 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
+                        <!-- Focus underline (aligned to TextBox bottom edge via Margin mirroring TextBox Margin) -->
+                        <Border Height="2" VerticalAlignment="Bottom"
+                                Margin="16,0,12,10"
+                                Background="{DynamicResource AccentPrimaryBrush}"
+                                IsHitTestVisible="False">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Opacity" Value="0"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=InputTextBox}" Value="True">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                        </Border>
                     </Grid>
 
                     <!-- Vertical Separator -->
@@ -438,6 +454,23 @@
                                 </TextBlock>
                             </StackPanel>
                         </StackPanel>
+
+                        <!-- Focus underline (aligned to pane bottom — mirrors Input side for symmetry, no negative margin to avoid collision with HistoryPanel separator) -->
+                        <Border Height="2" VerticalAlignment="Bottom"
+                                Margin="0,0,0,0"
+                                Background="{DynamicResource AccentPrimaryBrush}"
+                                IsHitTestVisible="False">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Opacity" Value="0"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsKeyboardFocusWithin, ElementName=TranslationTextBox}" Value="True">
+                                            <Setter Property="Opacity" Value="1"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                        </Border>
 
                         <!-- Translation Text -->
                         <TextBox x:Name="TranslationTextBox"

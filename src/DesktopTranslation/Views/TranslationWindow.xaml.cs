@@ -248,6 +248,15 @@ public partial class TranslationWindow : Window
         }
         catch { /* animation not critical */ }
 
+        // Focus input after layout settles so caret lands in the textbox for immediate editing
+        Dispatcher.BeginInvoke(
+            new Action(() =>
+            {
+                InputTextBox.Focus();
+                InputTextBox.CaretIndex = InputTextBox.Text.Length;
+            }),
+            System.Windows.Threading.DispatcherPriority.Input);
+
         _ = TranslateAsync(text, targetLanguage);
     }
 
@@ -516,6 +525,12 @@ public partial class TranslationWindow : Window
 
     public void HideWindow()
     {
+        // Hiding the window implies the user wants to abandon the current interaction.
+        // Cancel any in-flight translation + debounce so background work doesn't
+        // silently finish and mutate hidden-window state (history, error, etc).
+        CancelTranslationRequest();
+        _debounceTimer.Stop();
+
         SavePosition();
         var fadeOut = (Storyboard)FindResource("FadeOutStoryboard");
         fadeOut.Begin(this);
