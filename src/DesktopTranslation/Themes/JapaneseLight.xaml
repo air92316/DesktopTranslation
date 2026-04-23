@@ -16,10 +16,10 @@
     <Color x:Key="TextTertiary">#8B949E</Color>
     <Color x:Key="TextInverse">#FAFBFC</Color>
 
-    <!-- Accent (Ai-iro inspired) -->
-    <Color x:Key="AccentPrimary">#4A6FA5</Color>
-    <Color x:Key="AccentHover">#3D5F91</Color>
-    <Color x:Key="AccentActive">#33507A</Color>
+    <!-- Accent (Ai-iro inspired, WCAG AA against BgPrimary) -->
+    <Color x:Key="AccentPrimary">#3D5F91</Color>
+    <Color x:Key="AccentHover">#33507A</Color>
+    <Color x:Key="AccentActive">#2A4369</Color>
     <Color x:Key="AccentSubtle">#EEF2F7</Color>
 
     <!-- Functional -->
@@ -35,7 +35,7 @@
     <!-- Interactive -->
     <Color x:Key="ButtonHover">#F2F3F5</Color>
     <Color x:Key="ButtonPressed">#EBEDF0</Color>
-    <Color x:Key="SegmentActive">#4A6FA5</Color>
+    <Color x:Key="SegmentActive">#3D5F91</Color>
     <Color x:Key="SegmentInactive">#EBEDF0</Color>
     <Color x:Key="SegmentActiveText">#FAFBFC</Color>
     <Color x:Key="SegmentInactiveText">#586069</Color>
@@ -52,7 +52,7 @@
     <!-- Input Controls -->
     <Color x:Key="InputBg">#FFFFFF</Color>
     <Color x:Key="InputBorder">#D1D5DA</Color>
-    <Color x:Key="InputFocusBorder">#4A6FA5</Color>
+    <Color x:Key="InputFocusBorder">#3D5F91</Color>
 
     <!-- Brushes for DynamicResource binding -->
     <SolidColorBrush x:Key="BgPrimaryBrush" Color="{StaticResource BgPrimary}"/>

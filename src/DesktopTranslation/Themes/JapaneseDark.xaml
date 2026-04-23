@@ -13,7 +13,7 @@
     <!-- Text Hierarchy -->
     <Color x:Key="TextPrimary">#E2E5E9</Color>
     <Color x:Key="TextSecondary">#8B949E</Color>
-    <Color x:Key="TextTertiary">#6B7380</Color>
+    <Color x:Key="TextTertiary">#7D848E</Color>
     <Color x:Key="TextInverse">#1E2128</Color>
 
     <!-- Accent (Ai-iro, brightened for dark bg) -->
