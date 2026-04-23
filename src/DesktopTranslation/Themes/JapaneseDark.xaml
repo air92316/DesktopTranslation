@@ -35,9 +35,10 @@
     <!-- Interactive -->
     <Color x:Key="ButtonHover">#2E333C</Color>
     <Color x:Key="ButtonPressed">#383E48</Color>
-    <Color x:Key="SegmentActive">#7EB0E0</Color>
-    <Color x:Key="SegmentInactive">#2E333C</Color>
-    <Color x:Key="SegmentActiveText">#1E2128</Color>
+    <!-- Tab-style: active = subtle tertiary bg + accent text; inactive = transparent -->
+    <Color x:Key="SegmentActive">#2E333C</Color>
+    <Color x:Key="SegmentInactive">#00000000</Color>
+    <Color x:Key="SegmentActiveText">#7EB0E0</Color>
     <Color x:Key="SegmentInactiveText">#8B949E</Color>
     <Color x:Key="ShimmerBase">#2E333C</Color>
 
