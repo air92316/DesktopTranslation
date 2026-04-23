@@ -2,6 +2,14 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Global Control Styles — Japanese-inspired minimal aesthetic -->
+    <!--
+        Corner Radius Tier (容器 / 控件 / 微件):
+          Tier A — Container (window frame, card panel)           : 8
+          Tier B — Control (primary/secondary button, popup menu) : 6
+          Tier C — Micro-widget (icon button, segment, chip, tag) : 4
+        Keep inner radii strictly smaller than their nesting container
+        to preserve concentric alignment at hover/clip edges.
+    -->
 
     <!-- ToolTip -->
     <Style TargetType="ToolTip">
@@ -104,7 +112,7 @@
                     <Border Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="8"
+                            CornerRadius="6"
                             Padding="{TemplateBinding Padding}">
                         <Border.Effect>
                             <DropShadowEffect BlurRadius="16" Opacity="0.18" ShadowDepth="4" Direction="270"/>

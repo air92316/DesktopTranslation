@@ -63,7 +63,7 @@
                              From="-200" To="400" Duration="0:0:1.5"/>
         </Storyboard>
 
-        <!-- Icon Button Style -->
+        <!-- Icon Button Style (Tier C: micro-widget, radius 4) -->
         <Style x:Key="IconButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -76,7 +76,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                CornerRadius="6" Padding="{TemplateBinding Padding}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}"
                                 BorderBrush="Transparent" BorderThickness="1">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -144,7 +144,7 @@
 
     <!-- Main Border with Shadow -->
     <Border x:Name="MainBorder"
-            CornerRadius="12"
+            CornerRadius="8"
             Background="{DynamicResource BgPrimaryBrush}"
             Margin="10"
             RenderTransformOrigin="0.5,0.5">
@@ -152,10 +152,10 @@
             <ScaleTransform ScaleX="1" ScaleY="1"/>
         </Border.RenderTransform>
         <Border.Effect>
-            <DropShadowEffect BlurRadius="24" Opacity="0.15" ShadowDepth="6" Direction="270"/>
+            <DropShadowEffect BlurRadius="16" Opacity="0.08" ShadowDepth="4" Direction="270"/>
         </Border.Effect>
         <Border.Clip>
-            <RectangleGeometry x:Name="ClipGeometry" RadiusX="12" RadiusY="12"/>
+            <RectangleGeometry x:Name="ClipGeometry" RadiusX="8" RadiusY="8"/>
         </Border.Clip>
 
         <Grid>
@@ -167,7 +167,7 @@
 
             <!-- Title Bar -->
             <Border Grid.Row="0" Background="{DynamicResource BgSecondaryBrush}"
-                    CornerRadius="12,12,0,0"
+                    CornerRadius="8,8,0,0"
                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -492,7 +492,7 @@
             <!-- History Panel -->
             <Border Grid.Row="2" Background="{DynamicResource BgSecondaryBrush}"
                     BorderBrush="{DynamicResource SeparatorBrush}" BorderThickness="0,1,0,0"
-                    CornerRadius="0,0,12,12">
+                    CornerRadius="0,0,8,8">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -513,7 +513,7 @@
                             <Button.Template>
                                 <ControlTemplate TargetType="Button">
                                     <Border x:Name="Bd" Background="{TemplateBinding Background}"
-                                            Padding="{TemplateBinding Padding}" CornerRadius="0,0,0,12">
+                                            Padding="{TemplateBinding Padding}" CornerRadius="0,0,0,8">
                                         <ContentPresenter HorizontalAlignment="Left"/>
                                     </Border>
                                     <ControlTemplate.Triggers>
@@ -535,7 +535,7 @@
 
                         <!-- Clear-all button (only visible when history panel is expanded).
                              Inline template so hover bg CornerRadius aligns with outer HistoryPanel
-                             bottom-right 12px, avoiding 6px/12px mismatch at clip edge. -->
+                             bottom-right 8px, avoiding 6px/8px mismatch at clip edge. -->
                         <Button Grid.Column="1" x:Name="BtnClearHistory"
                                 Click="ClearHistory_Click"
                                 Content="&#x1F5D1;"
@@ -549,7 +549,7 @@
                                 <ControlTemplate TargetType="Button">
                                     <Border x:Name="Bd" Background="{TemplateBinding Background}"
                                             Padding="{TemplateBinding Padding}"
-                                            CornerRadius="0,0,12,0"
+                                            CornerRadius="0,0,8,0"
                                             BorderBrush="Transparent" BorderThickness="1">
                                         <ContentPresenter HorizontalAlignment="Center"
                                                           VerticalAlignment="Center"/>
