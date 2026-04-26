@@ -4,6 +4,7 @@ using System.Windows;
 using DesktopTranslation.Helpers;
 using DesktopTranslation.Models;
 using DesktopTranslation.Services;
+using DesktopTranslation.Services.Llm;
 using DesktopTranslation.Views;
 
 namespace DesktopTranslation;
@@ -60,10 +61,17 @@ public partial class App : System.Windows.Application
             _translationService = new TranslationService();
             _translationService.RegisterEngine("google", new GoogleTranslateEngine());
 
-            if (!string.IsNullOrEmpty(_settings.ApiKey))
+            var startupEffectiveKey = SettingsService.GetEffectiveApiKey(_settings, _settings.LlmProvider);
+            if (!string.IsNullOrEmpty(startupEffectiveKey))
             {
                 _translationService.RegisterEngine("llm",
-                    new LlmTranslateEngine(_settings.LlmProvider, _settings.ApiKey));
+                    new LlmTranslateEngine(
+                        _settings.LlmProvider,
+                        startupEffectiveKey,
+                        _settings.LlmModel,
+                        _settings.LlmBaseUrl,
+                        _settings.LlmTemperature,
+                        _settings.LlmMaxTokens));
             }
 
             _translationService.SetEngine(_settings.Engine);
@@ -193,10 +201,17 @@ public partial class App : System.Windows.Application
         _ttsService.SetSpeed(newSettings.TtsSpeed);
 
         // Update LLM engine if API key changed
-        if (!string.IsNullOrEmpty(newSettings.ApiKey))
+        var effectiveKey = SettingsService.GetEffectiveApiKey(newSettings, newSettings.LlmProvider);
+        if (!string.IsNullOrEmpty(effectiveKey))
         {
             _translationService.RegisterEngine("llm",
-                new LlmTranslateEngine(newSettings.LlmProvider, newSettings.ApiKey));
+                new LlmTranslateEngine(
+                    newSettings.LlmProvider,
+                    effectiveKey,
+                    newSettings.LlmModel,
+                    newSettings.LlmBaseUrl,
+                    newSettings.LlmTemperature,
+                    newSettings.LlmMaxTokens));
         }
         _translationService.SetEngine(newSettings.Engine);
 

@@ -18,4 +18,12 @@ public record AppSettings
     public int UpdateCheckIntervalHours { get; init; } = 24;
     public string SkippedVersion { get; init; } = "";
     public DateTime LastUpdateCheck { get; init; } = DateTime.MinValue;
+
+    public string LlmModel { get; init; } = "";
+    public string LlmBaseUrl { get; init; } = "";
+    public double LlmTemperature { get; init; } = 0.3;
+    public int LlmMaxTokens { get; init; } = 2048;
+    public string OpenAiApiKey { get; init; } = "";
+    public string ClaudeApiKey { get; init; } = "";
+    public string GeminiApiKey { get; init; } = "";
 }

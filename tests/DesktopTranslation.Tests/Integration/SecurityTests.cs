@@ -1,6 +1,7 @@
 using System.Text.Json;
 using DesktopTranslation.Models;
 using DesktopTranslation.Services;
+using DesktopTranslation.Services.Llm;
 
 namespace DesktopTranslation.Tests.Integration;
 
@@ -93,27 +94,27 @@ public class SecurityTests : IDisposable
         // LlmTranslateEngine line 44 wraps user text in <translate> tags
 
         // Integration test: ensure the engine constructor validates inputs
-        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("", "key"));
-        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("claude", ""));
-        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("claude", " "));
+        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("", "key", "", "", 0.3, 2048));
+        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("claude", "", "", "", 0.3, 2048));
+        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("claude", " ", "", "", 0.3, 2048));
     }
 
     [Fact]
     public void LlmTranslateEngine_RejectsEmptyProvider()
     {
-        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("", "valid-key"));
+        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("", "valid-key", "", "", 0.3, 2048));
     }
 
     [Fact]
     public void LlmTranslateEngine_RejectsEmptyApiKey()
     {
-        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("claude", ""));
+        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("claude", "", "", "", 0.3, 2048));
     }
 
     [Fact]
     public void LlmTranslateEngine_RejectsWhitespaceApiKey()
     {
-        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("claude", "   "));
+        Assert.Throws<ArgumentException>(() => new LlmTranslateEngine("claude", "   ", "", "", 0.3, 2048));
     }
 
     // --- Error Messages: No Sensitive Information Leaks ---

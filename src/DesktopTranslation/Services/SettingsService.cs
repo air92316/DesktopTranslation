@@ -16,7 +16,7 @@ public class SettingsService
 
     private static readonly HashSet<string> ValidEngines = ["google", "llm"];
     private static readonly HashSet<string> ValidThemes = ["system", "light", "dark"];
-    private static readonly HashSet<string> ValidProviders = ["claude", "openai"];
+    private static readonly HashSet<string> ValidProviders = ["claude", "openai", "gemini"];
 
     private readonly string _filePath;
     private readonly object _lock = new();
@@ -43,17 +43,17 @@ public class SettingsService
                 var settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions)
                                ?? new AppSettings();
 
-                // Decrypt API key (DPAPI)
-                var decryptedKey = DataProtectionHelper.Unprotect(settings.ApiKey);
-                if (string.IsNullOrEmpty(decryptedKey) && !string.IsNullOrEmpty(settings.ApiKey))
+                settings = settings with
                 {
-                    // Migration: stored key is plaintext (pre-encryption era)
-                    // Return as-is; it will be encrypted on next Save()
-                    decryptedKey = settings.ApiKey;
-                }
+                    ApiKey = DecryptOrPassthrough(settings.ApiKey),
+                    OpenAiApiKey = DecryptOrPassthrough(settings.OpenAiApiKey),
+                    ClaudeApiKey = DecryptOrPassthrough(settings.ClaudeApiKey),
+                    GeminiApiKey = DecryptOrPassthrough(settings.GeminiApiKey),
+                };
 
-                settings = settings with { ApiKey = decryptedKey };
-                return Validate(settings);
+                settings = Validate(settings);
+                settings = MigrateLegacyApiKey(settings);
+                return settings;
             }
             catch (JsonException ex)
             {
@@ -72,13 +72,63 @@ public class SettingsService
     {
         lock (_lock)
         {
-            // Encrypt API key before persisting
-            var encryptedKey = DataProtectionHelper.Protect(settings.ApiKey);
-            var toSave = Validate(settings) with { ApiKey = encryptedKey };
+            var validated = Validate(settings);
+            var toSave = validated with
+            {
+                ApiKey = DataProtectionHelper.Protect(validated.ApiKey),
+                OpenAiApiKey = DataProtectionHelper.Protect(validated.OpenAiApiKey),
+                ClaudeApiKey = DataProtectionHelper.Protect(validated.ClaudeApiKey),
+                GeminiApiKey = DataProtectionHelper.Protect(validated.GeminiApiKey),
+            };
 
             var json = JsonSerializer.Serialize(toSave, JsonOptions);
             File.WriteAllText(_filePath, json);
         }
+    }
+
+    public static string GetEffectiveApiKey(AppSettings settings, string provider)
+    {
+        var perProviderKey = provider switch
+        {
+            "claude" => settings.ClaudeApiKey,
+            "openai" => settings.OpenAiApiKey,
+            "gemini" => settings.GeminiApiKey,
+            _ => "",
+        };
+        return string.IsNullOrEmpty(perProviderKey) ? settings.ApiKey : perProviderKey;
+    }
+
+    private static string DecryptOrPassthrough(string stored)
+    {
+        if (string.IsNullOrEmpty(stored))
+            return "";
+
+        var decrypted = DataProtectionHelper.Unprotect(stored);
+        if (!string.IsNullOrEmpty(decrypted))
+            return decrypted;
+
+        return stored;
+    }
+
+    private static AppSettings MigrateLegacyApiKey(AppSettings s)
+    {
+        if (!string.IsNullOrEmpty(s.OpenAiApiKey)
+            || !string.IsNullOrEmpty(s.ClaudeApiKey)
+            || !string.IsNullOrEmpty(s.GeminiApiKey))
+        {
+            return s;
+        }
+
+        if (string.IsNullOrEmpty(s.ApiKey))
+            return s;
+
+        return s.LlmProvider switch
+        {
+            "claude" => s with { ClaudeApiKey = s.ApiKey },
+            "openai" => s with { OpenAiApiKey = s.ApiKey },
+            "gemini" => s with { GeminiApiKey = s.ApiKey },
+            _ => s,
+        };
     }
 
     private static AppSettings Validate(AppSettings s)
@@ -96,6 +146,8 @@ public class SettingsService
             Theme = ValidThemes.Contains(s.Theme) ? s.Theme : defaults.Theme,
             LlmProvider = ValidProviders.Contains(s.LlmProvider) ? s.LlmProvider : defaults.LlmProvider,
             UpdateCheckIntervalHours = Math.Clamp(s.UpdateCheckIntervalHours, 1, 168),
+            LlmTemperature = Math.Clamp(s.LlmTemperature, 0.0, 2.0),
+            LlmMaxTokens = Math.Clamp(s.LlmMaxTokens, 256, 8192),
         };
     }
 }
