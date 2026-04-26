@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using DesktopTranslation.Models;
 using DesktopTranslation.Services;
+using DesktopTranslation.Services.Llm;
 
 namespace DesktopTranslation.Views;
 
@@ -12,9 +13,12 @@ public partial class SettingsWindow : Window
     private readonly SettingsService _settingsService;
     private readonly Action<AppSettings> _onSettingsApplied;
     private AppSettings? _loadedSnapshot;
+    private AppSettings _workingSettings = new();
     private bool _allowClose;
     private bool _closePromptOpen;
     private bool _saveFeedbackInProgress;
+    private bool _suppressProviderEvents;
+    private bool _modelIsImplicitDefault;
 
     public SettingsWindow(SettingsService settingsService, Action<AppSettings> onSettingsApplied)
     {
@@ -47,44 +51,202 @@ public partial class SettingsWindow : Window
     private void LoadSettings()
     {
         var settings = _settingsService.Load();
+        _workingSettings = settings;
 
-        RbGoogle.IsChecked = settings.Engine == "google";
-        RbLlm.IsChecked = settings.Engine == "llm";
-
-        CbProvider.SelectedIndex = settings.LlmProvider == "openai" ? 1 : 0;
-        TxtApiKey.Password = settings.ApiKey;
-        ChkAutoStart.IsChecked = settings.AutoStart;
-        ChkAutoUpdate.IsChecked = settings.AutoUpdateEnabled;
-        SliderInterval.Value = settings.DoubleTapInterval;
-        SliderSpeed.Value = settings.TtsSpeed;
-
-        var themeIndex = settings.Theme switch
+        _suppressProviderEvents = true;
+        try
         {
-            "light" => 1,
-            "dark" => 2,
-            _ => 0
-        };
-        CbTheme.SelectedIndex = themeIndex;
+            RbGoogle.IsChecked = settings.Engine == "google";
+            RbLlm.IsChecked = settings.Engine == "llm";
+
+            CbProvider.SelectedIndex = settings.LlmProvider switch
+            {
+                "openai" => 1,
+                "gemini" => 2,
+                _ => 0,
+            };
+
+            ApplyProviderUi(settings.LlmProvider, settings);
+
+            TxtBaseUrl.Text = settings.LlmBaseUrl;
+            SliderTemperature.Value = settings.LlmTemperature;
+            SliderMaxTokens.Value = settings.LlmMaxTokens;
+            TxtTemperatureValue.Text = Math.Round(settings.LlmTemperature, 1).ToString("F1");
+            TxtMaxTokensValue.Text = ((int)settings.LlmMaxTokens).ToString();
+
+            ChkAutoStart.IsChecked = settings.AutoStart;
+            ChkAutoUpdate.IsChecked = settings.AutoUpdateEnabled;
+            SliderInterval.Value = settings.DoubleTapInterval;
+            SliderSpeed.Value = settings.TtsSpeed;
+
+            var themeIndex = settings.Theme switch
+            {
+                "light" => 1,
+                "dark" => 2,
+                _ => 0,
+            };
+            CbTheme.SelectedIndex = themeIndex;
+        }
+        finally
+        {
+            _suppressProviderEvents = false;
+        }
 
         // snapshot after UI values are set; ReadCurrentSettings must see the same state
-        _loadedSnapshot = ReadCurrentSettings();
+        var normalized = ReadCurrentSettings();
+        _loadedSnapshot = normalized;
+        _workingSettings = normalized;
+    }
+
+    private void ApplyProviderUi(string provider, AppSettings settings)
+    {
+        var rawModels = LlmModelCatalog.GetModels(provider);
+        var defaultId = LlmModelCatalog.GetDefault(provider);
+        var displayModels = BuildDisplayList(rawModels, defaultId);
+        CbModel.ItemsSource = displayModels;
+
+        var selectedModelId = settings.LlmModel ?? string.Empty;
+        _modelIsImplicitDefault = false;
+
+        if (displayModels.Count == 0)
+        {
+            CbModel.SelectedIndex = -1;
+            TxtCustomModel.Visibility = Visibility.Collapsed;
+            TxtCustomModel.Text = string.Empty;
+        }
+        else if (string.IsNullOrEmpty(selectedModelId))
+        {
+            // implicit default: keep settings.LlmModel == "" so engine can fallback
+            CbModel.SelectedItem = displayModels[0];
+            _modelIsImplicitDefault = true;
+            TxtCustomModel.Visibility = Visibility.Collapsed;
+            TxtCustomModel.Text = string.Empty;
+        }
+        else
+        {
+            LlmModelEntry? match = null;
+            foreach (var entry in displayModels)
+            {
+                if (!entry.IsCustom && string.Equals(entry.Id, selectedModelId, StringComparison.Ordinal))
+                {
+                    match = entry;
+                    break;
+                }
+            }
+
+            if (match is not null)
+            {
+                CbModel.SelectedItem = match;
+                TxtCustomModel.Visibility = Visibility.Collapsed;
+                TxtCustomModel.Text = string.Empty;
+            }
+            else
+            {
+                LlmModelEntry? customEntry = null;
+                foreach (var entry in displayModels)
+                {
+                    if (entry.IsCustom)
+                    {
+                        customEntry = entry;
+                        break;
+                    }
+                }
+
+                if (customEntry is not null)
+                {
+                    CbModel.SelectedItem = customEntry;
+                    TxtCustomModel.Visibility = Visibility.Visible;
+                    TxtCustomModel.Text = selectedModelId;
+                }
+                else
+                {
+                    CbModel.SelectedItem = displayModels[0];
+                    _modelIsImplicitDefault = true;
+                    TxtCustomModel.Visibility = Visibility.Collapsed;
+                    TxtCustomModel.Text = string.Empty;
+                }
+            }
+        }
+
+        TxtApiKey.Password = SettingsService.GetEffectiveApiKey(settings, provider);
+        PnlBaseUrl.Visibility = provider == "openai" ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private static List<LlmModelEntry> BuildDisplayList(IReadOnlyList<LlmModelEntry> raw, string defaultId)
+    {
+        var list = new List<LlmModelEntry>(raw.Count);
+        for (var i = 0; i < raw.Count; i++)
+        {
+            var entry = raw[i];
+            if (i == 0 && !entry.IsCustom && !string.IsNullOrEmpty(defaultId))
+            {
+                list.Add(entry with { DisplayName = $"使用預設 ({defaultId})" });
+            }
+            else
+            {
+                list.Add(entry);
+            }
+        }
+        return list;
+    }
+
+    private static string GetSelectedProvider(System.Windows.Controls.ComboBox provider)
+    {
+        var tag = (provider.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+        return tag switch
+        {
+            "openai" => "openai",
+            "gemini" => "gemini",
+            _ => "claude",
+        };
+    }
+
+    private string GetSelectedModelId()
+    {
+        if (CbModel.SelectedItem is not LlmModelEntry entry)
+            return string.Empty;
+
+        if (entry.IsCustom)
+            return TxtCustomModel.Text.Trim();
+
+        // first non-custom item is the implicit-default slot; preserve "" in settings so engine can fallback
+        if (_modelIsImplicitDefault)
+            return string.Empty;
+
+        return entry.Id;
     }
 
     private AppSettings ReadCurrentSettings()
     {
-        var baseline = _loadedSnapshot ?? _settingsService.Load();
+        // _workingSettings carries per-provider keys captured during provider switches.
+        // _loadedSnapshot is the post-normalize baseline used by IsDirty comparison only.
+        var baseline = _workingSettings;
         var themeTag = (CbTheme.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "system";
+        var provider = GetSelectedProvider(CbProvider);
+        var modelId = GetSelectedModelId();
+        var apiKey = TxtApiKey.Password;
 
-        return baseline with
+        var withApiKey = baseline with
+        {
+            ApiKey = apiKey,
+            ClaudeApiKey = provider == "claude" ? apiKey : baseline.ClaudeApiKey,
+            OpenAiApiKey = provider == "openai" ? apiKey : baseline.OpenAiApiKey,
+            GeminiApiKey = provider == "gemini" ? apiKey : baseline.GeminiApiKey,
+        };
+
+        return withApiKey with
         {
             Engine = RbLlm.IsChecked == true ? "llm" : "google",
-            LlmProvider = CbProvider.SelectedIndex == 1 ? "openai" : "claude",
-            ApiKey = TxtApiKey.Password,
+            LlmProvider = provider,
+            LlmModel = modelId,
+            LlmBaseUrl = TxtBaseUrl.Text.Trim(),
+            LlmTemperature = Math.Round(SliderTemperature.Value, 1),
+            LlmMaxTokens = (int)SliderMaxTokens.Value,
             AutoStart = ChkAutoStart.IsChecked == true,
             AutoUpdateEnabled = ChkAutoUpdate.IsChecked == true,
             DoubleTapInterval = (int)SliderInterval.Value,
             TtsSpeed = Math.Round(SliderSpeed.Value, 1),
-            Theme = themeTag
+            Theme = themeTag,
         };
     }
 
@@ -224,5 +386,74 @@ public partial class SettingsWindow : Window
     {
         if (TxtSpeedValue != null)
             TxtSpeedValue.Text = Math.Round(e.NewValue, 1).ToString("F1");
+    }
+
+    private void CbProvider_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressProviderEvents) return;
+        if (_loadedSnapshot is null) return;
+
+        // capture key user just typed for the previous provider before switching
+        var previousProvider = _workingSettings.LlmProvider;
+        var typedKey = TxtApiKey.Password;
+        if (!string.IsNullOrEmpty(typedKey) && previousProvider is "claude" or "openai" or "gemini")
+        {
+            _workingSettings = previousProvider switch
+            {
+                "claude" => _workingSettings with { ClaudeApiKey = typedKey, ApiKey = typedKey },
+                "openai" => _workingSettings with { OpenAiApiKey = typedKey, ApiKey = typedKey },
+                "gemini" => _workingSettings with { GeminiApiKey = typedKey, ApiKey = typedKey },
+                _ => _workingSettings,
+            };
+        }
+
+        var provider = GetSelectedProvider(CbProvider);
+        _workingSettings = _workingSettings with { LlmProvider = provider };
+
+        _suppressProviderEvents = true;
+        try
+        {
+            ApplyProviderUi(provider, _workingSettings);
+        }
+        finally
+        {
+            _suppressProviderEvents = false;
+        }
+    }
+
+    private void CbModel_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressProviderEvents) return;
+
+        // any explicit user selection drops the implicit-default flag
+        _modelIsImplicitDefault = false;
+
+        if (CbModel.SelectedItem is LlmModelEntry entry && entry.IsCustom)
+        {
+            TxtCustomModel.Visibility = Visibility.Visible;
+            TxtCustomModel.Focus();
+        }
+        else
+        {
+            TxtCustomModel.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void SliderTemperature_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (TxtTemperatureValue != null)
+            TxtTemperatureValue.Text = Math.Round(e.NewValue, 1).ToString("F1");
+    }
+
+    private void SliderMaxTokens_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (TxtMaxTokensValue != null)
+            TxtMaxTokensValue.Text = ((int)e.NewValue).ToString();
+    }
+
+    private void ResetAdvanced_Click(object sender, RoutedEventArgs e)
+    {
+        SliderTemperature.Value = 0.3;
+        SliderMaxTokens.Value = 2048;
     }
 }
