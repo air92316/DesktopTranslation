@@ -1,7 +1,10 @@
+using System.Diagnostics;
 using System.ComponentModel;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using DesktopTranslation.Models;
 using DesktopTranslation.Services;
 using DesktopTranslation.Services.Llm;
@@ -19,6 +22,7 @@ public partial class SettingsWindow : Window
     private bool _saveFeedbackInProgress;
     private bool _suppressProviderEvents;
     private bool _modelIsImplicitDefault;
+    private CancellationTokenSource? _testCts;
 
     public SettingsWindow(SettingsService settingsService, Action<AppSettings> onSettingsApplied)
     {
@@ -419,6 +423,8 @@ public partial class SettingsWindow : Window
         {
             _suppressProviderEvents = false;
         }
+
+        if (TxtTestStatus is not null) TxtTestStatus.Text = "";
     }
 
     private void CbModel_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -456,4 +462,89 @@ public partial class SettingsWindow : Window
         SliderTemperature.Value = 0.3;
         SliderMaxTokens.Value = 2048;
     }
+
+    private async void TestConnection_Click(object sender, RoutedEventArgs e)
+    {
+        _testCts?.Cancel();
+        _testCts?.Dispose();
+        _testCts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        var ct = _testCts.Token;
+
+        var infoBrush = (TryFindResource("TextSecondaryBrush") as System.Windows.Media.Brush)
+            ?? System.Windows.Media.Brushes.Gray;
+        var successBrush = (TryFindResource("SuccessBrush") as System.Windows.Media.Brush)
+            ?? System.Windows.Media.Brushes.SeaGreen;
+        var errorBrush = (TryFindResource("ErrorBrush") as System.Windows.Media.Brush)
+            ?? System.Windows.Media.Brushes.IndianRed;
+
+        if (RbLlm.IsChecked != true)
+        {
+            SetTestStatus("請先選 LLM 引擎", infoBrush);
+            return;
+        }
+
+        var current = ReadCurrentSettings();
+        var effectiveKey = SettingsService.GetEffectiveApiKey(current, current.LlmProvider);
+        if (string.IsNullOrWhiteSpace(effectiveKey))
+        {
+            SetTestStatus("請先輸入 API Key", infoBrush);
+            return;
+        }
+
+        var origContent = BtnTestConnection.Content;
+        BtnTestConnection.IsEnabled = false;
+        BtnTestConnection.Content = "測試中…";
+        SetTestStatus($"正在連線到 {current.LlmProvider}…", infoBrush);
+
+        var stopwatch = Stopwatch.StartNew();
+        try
+        {
+            var engine = new LlmTranslateEngine(
+                current.LlmProvider, effectiveKey, current.LlmModel,
+                current.LlmBaseUrl, current.LlmTemperature, current.LlmMaxTokens);
+
+            var result = await engine.TranslateAsync("你好", "en", ct);
+            stopwatch.Stop();
+
+            if (result.IsSuccess)
+            {
+                SetTestStatus($"✓ 成功（{stopwatch.ElapsedMilliseconds} ms）", successBrush);
+            }
+            else
+            {
+                SetTestStatus(MapErrorMessage(result.ErrorKind, current.LlmProvider, result.ErrorMessage ?? ""), errorBrush);
+            }
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            SetTestStatus("✗ 連線逾時（>8s），請檢查網路或 BaseUrl", errorBrush);
+        }
+        catch (Exception ex)
+        {
+            SetTestStatus(MapErrorMessage(ErrorKind.Unknown, current.LlmProvider, ex.Message), errorBrush);
+        }
+        finally
+        {
+            BtnTestConnection.IsEnabled = true;
+            BtnTestConnection.Content = origContent;
+        }
+    }
+
+    private void SetTestStatus(string text, System.Windows.Media.Brush brush)
+    {
+        TxtTestStatus.Text = text;
+        TxtTestStatus.Foreground = brush;
+    }
+
+    private static string MapErrorMessage(ErrorKind kind, string provider, string raw) => kind switch
+    {
+        ErrorKind.ApiKey => "✗ API Key 無效或未授權，請確認 key 是否正確",
+        ErrorKind.RateLimit => "✗ 觸發速率限制，請稍候再試",
+        ErrorKind.Timeout => "✗ 連線逾時（>8s），請檢查網路或 BaseUrl",
+        ErrorKind.Network => $"✗ 網路連線失敗，請確認可連線到 {provider}",
+        _ => $"✗ 連線失敗：{Truncate(raw, 100)}",
+    };
+
+    private static string Truncate(string text, int max)
+        => string.IsNullOrEmpty(text) ? "" : (text.Length <= max ? text : text[..max]);
 }

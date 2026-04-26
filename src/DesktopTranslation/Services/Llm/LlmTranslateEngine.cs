@@ -78,6 +78,7 @@ public class LlmTranslateEngine : ITranslationEngine
     private IProviderClient CreateClient() => _provider switch
     {
         "openai" => new OpenAiProviderClient(_apiKey, EffectiveModel, _baseUrl, _temperature, _maxTokens),
+        "gemini" => new GeminiProviderClient(_apiKey, EffectiveModel, _temperature, _maxTokens),
         _ => new ClaudeProviderClient(_apiKey, EffectiveModel, _maxTokens, _temperature),
     };
 }

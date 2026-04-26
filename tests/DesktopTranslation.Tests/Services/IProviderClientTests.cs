@@ -60,6 +60,13 @@ public class IProviderClientTests
     }
 
     [Fact]
+    public void LlmTranslateEngine_EffectiveModel_GeminiDefault_WhenModelEmpty()
+    {
+        var engine = new LlmTranslateEngine("gemini", "key", "", "", 0.3, 2048);
+        Assert.Equal("gemini-2.5-flash", engine.EffectiveModel);
+    }
+
+    [Fact]
     public void ClaudeProviderClient_ClassifyError_Unauthorized_ReturnsApiKey()
     {
         var client = new ClaudeProviderClient("key", "claude-haiku-4-5-20251001", 2048, 0.3);

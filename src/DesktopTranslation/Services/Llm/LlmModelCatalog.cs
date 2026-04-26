@@ -16,7 +16,7 @@ public static class LlmModelCatalog
     {
         "claude" => "claude-haiku-4-5-20251001",
         "openai" => "gpt-5.4-nano",
-        "gemini" => "",
+        "gemini" => "gemini-2.5-flash",
         _ => "",
     };
 
@@ -38,5 +38,10 @@ public static class LlmModelCatalog
         new LlmModelEntry("", "自訂…", IsCustom: true),
     };
 
-    private static readonly IReadOnlyList<LlmModelEntry> GeminiModels = Array.Empty<LlmModelEntry>();
+    private static readonly IReadOnlyList<LlmModelEntry> GeminiModels = new[]
+    {
+        new LlmModelEntry("gemini-2.5-flash", "gemini-2.5-flash（預設、穩定 GA）"),
+        new LlmModelEntry("gemini-2.5-flash-lite", "gemini-2.5-flash-lite（更便宜）"),
+        new LlmModelEntry("", "自訂…", IsCustom: true),
+    };
 }

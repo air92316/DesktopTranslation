@@ -19,10 +19,11 @@ public class LlmModelCatalogTests
     }
 
     [Fact]
-    public void GetModels_Gemini_ReturnsEmpty_InPhase2a()
+    public void GetModels_Gemini_ReturnsCuratedList()
     {
         var models = LlmModelCatalog.GetModels("gemini");
-        Assert.Empty(models);
+        Assert.True(models.Count >= 3, "Gemini catalog should include curated entries plus custom");
+        Assert.Contains(models, m => m.IsCustom);
     }
 
     [Fact]
@@ -45,9 +46,9 @@ public class LlmModelCatalogTests
     }
 
     [Fact]
-    public void GetDefault_Gemini_ReturnsEmpty_InPhase2a()
+    public void GetDefault_Gemini_ReturnsFlash25()
     {
-        Assert.Equal("", LlmModelCatalog.GetDefault("gemini"));
+        Assert.Equal("gemini-2.5-flash", LlmModelCatalog.GetDefault("gemini"));
     }
 
     [Fact]
@@ -103,5 +104,22 @@ public class LlmModelCatalogTests
         Assert.DoesNotContain("gpt-4o-mini", ids);
         Assert.DoesNotContain("gpt-4o", ids);
         Assert.DoesNotContain("gpt-5-nano", ids);
+    }
+
+    [Fact]
+    public void Gemini_Catalog_ContainsExpectedAliases()
+    {
+        var models = LlmModelCatalog.GetModels("gemini");
+        var ids = models.Select(m => m.Id).ToList();
+        Assert.Contains("gemini-2.5-flash", ids);
+        Assert.Contains("gemini-2.5-flash-lite", ids);
+    }
+
+    [Fact]
+    public void Gemini_Catalog_ShouldNotIncludeRetiredModels()
+    {
+        var ids = LlmModelCatalog.GetModels("gemini").Select(m => m.Id).ToList();
+        Assert.DoesNotContain("gemini-2.0-flash", ids);
+        Assert.DoesNotContain(ids, id => id.Contains("preview", StringComparison.OrdinalIgnoreCase));
     }
 }
