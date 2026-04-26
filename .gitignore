@@ -47,3 +47,6 @@ graphify-out/
 
 ## self-optimize local log
 OPTIMIZATION-LOG.md
+
+## Codex worker temp prompt files
+.codex_*.txt
