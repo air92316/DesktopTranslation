@@ -198,7 +198,7 @@ public partial class TranslationWindow : Window
         }
         var settings = _settingsService.Load();
         RestorePosition(settings);
-        _llmAvailable = !string.IsNullOrEmpty(settings.ApiKey);
+        _llmAvailable = HasLlmApiKey(settings);
         UpdateEngineButtons(settings.Engine);
     }
 
@@ -215,10 +215,14 @@ public partial class TranslationWindow : Window
         }
     }
 
+    // Same rule App uses to decide whether the LLM engine gets registered (per-provider key first, legacy key as fallback).
+    private static bool HasLlmApiKey(AppSettings settings) =>
+        !string.IsNullOrEmpty(SettingsService.GetEffectiveApiKey(settings, settings.LlmProvider));
+
     public void RefreshLlmAvailability()
     {
         var settings = _settingsService.Load();
-        _llmAvailable = !string.IsNullOrEmpty(settings.ApiKey);
+        _llmAvailable = HasLlmApiKey(settings);
         UpdateEngineButtons(_translationService.CurrentEngineName);
     }
 
@@ -434,7 +438,7 @@ public partial class TranslationWindow : Window
     {
         ErrorKind.Network => "網路連線失敗，請檢查網路設定",
         ErrorKind.ApiKey => "API 金鑰無效，請重新設定",
-        ErrorKind.RateLimit => "請求頻率過高，請稍後再試",
+        ErrorKind.RateLimit => "請求過於頻繁或額度已用盡，請稍後再試",
         ErrorKind.Timeout => "翻譯逾時，請重試",
         _ => "翻譯失敗，請重試"
     };

@@ -56,6 +56,17 @@ public class TranslationService
         _cache.Clear();
     }
 
+    /// <summary>Removes an engine (e.g. LLM after its API key was cleared). Falls back to "google" if it was active.</summary>
+    public void UnregisterEngine(string key)
+    {
+        if (!_engines.Remove(key))
+            return;
+
+        _cache.Clear();
+        if (CurrentEngineName == key)
+            CurrentEngineName = _engines.ContainsKey("google") ? "google" : _engines.Keys.FirstOrDefault() ?? key;
+    }
+
     public void SetEngine(string key)
     {
         if (_engines.TryGetValue(key, out _))

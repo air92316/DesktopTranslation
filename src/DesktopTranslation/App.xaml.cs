@@ -200,7 +200,8 @@ public partial class App : System.Windows.Application
         // Update TTS speed
         _ttsService.SetSpeed(newSettings.TtsSpeed);
 
-        // Update LLM engine if API key changed
+        // Update LLM engine if API key changed; drop it entirely when the key was cleared
+        // so a stale client with the old key can never be selected again.
         var effectiveKey = SettingsService.GetEffectiveApiKey(newSettings, newSettings.LlmProvider);
         if (!string.IsNullOrEmpty(effectiveKey))
         {
@@ -213,13 +214,17 @@ public partial class App : System.Windows.Application
                     newSettings.LlmTemperature,
                     newSettings.LlmMaxTokens));
         }
+        else
+        {
+            _translationService.UnregisterEngine("llm");
+        }
         _translationService.SetEngine(newSettings.Engine);
 
         // Update theme at app level (affects all windows via DynamicResource)
         ApplyAppTheme(newSettings.Theme);
 
-        // Update tray menu
-        _trayIconManager.UpdateMenu(newSettings.AutoStart, newSettings.Engine);
+        // Update tray menu with the engine actually in use (LLM may have been unavailable)
+        _trayIconManager.UpdateMenu(newSettings.AutoStart, _translationService.CurrentEngineName);
 
         // Refresh LLM availability in translation window
         _translationWindow?.RefreshLlmAvailability();
@@ -228,9 +233,13 @@ public partial class App : System.Windows.Application
     private void SwitchEngine(string engine)
     {
         _translationService.SetEngine(engine);
+        // SetEngine is a no-op when the engine isn't registered (LLM without an API key):
+        // persist and display what is really active so settings, tray and window never disagree.
+        var actualEngine = _translationService.CurrentEngineName;
         var settings = _settingsService.Load();
-        _settingsService.Save(settings with { Engine = engine });
-        _trayIconManager.UpdateMenu(settings.AutoStart, engine);
+        _settingsService.Save(settings with { Engine = actualEngine });
+        _trayIconManager.UpdateMenu(settings.AutoStart, actualEngine);
+        _translationWindow?.RefreshLlmAvailability();
     }
 
     private void ToggleAutoStart(bool enabled)

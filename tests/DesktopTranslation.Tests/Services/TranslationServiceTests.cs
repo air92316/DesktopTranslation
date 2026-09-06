@@ -321,6 +321,49 @@ public class TranslationServiceTests
         Assert.Equal("Translation timed out.", result.ErrorMessage);
     }
 
+    // ── Unregister ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task UnregisterEngine_ActiveEngineRemoved_FallsBackToGoogle()
+    {
+        var service = new TranslationService();
+        service.RegisterEngine("google", new FakeEngine(new TranslationResult("g", "en", true)));
+        service.RegisterEngine("llm", new FakeEngine(new TranslationResult("l", "en", true)));
+        service.SetEngine("llm");
+
+        service.UnregisterEngine("llm");
+
+        Assert.Equal("google", service.CurrentEngineName);
+        var result = await service.TranslateAsync("hello", "zh-TW");
+        Assert.Equal("g", result.TranslatedText);
+    }
+
+    [Fact]
+    public async Task UnregisterEngine_LastEngineRemoved_TranslateReportsNoEngine()
+    {
+        var service = new TranslationService();
+        service.RegisterEngine("llm", new FakeEngine(new TranslationResult("l", "en", true)));
+        service.SetEngine("llm");
+
+        service.UnregisterEngine("llm");
+        var result = await service.TranslateAsync("hello", "zh-TW");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal("No engine configured", result.ErrorMessage);
+    }
+
+    [Fact]
+    public void UnregisterEngine_UnknownKey_IsNoOp()
+    {
+        var service = new TranslationService();
+        service.RegisterEngine("google", new FakeEngine(new TranslationResult("g", "en", true)));
+        service.SetEngine("google");
+
+        service.UnregisterEngine("nonexistent");
+
+        Assert.Equal("google", service.CurrentEngineName);
+    }
+
     // ── Cache semantics ──────────────────────────────────────────────
 
     [Fact]

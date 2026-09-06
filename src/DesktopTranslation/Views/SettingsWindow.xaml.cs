@@ -269,15 +269,38 @@ public partial class SettingsWindow : Window
     {
         var updated = ReadCurrentSettings();
 
-        _settingsService.Save(updated);
-        AutoStartService.SetEnabled(updated.AutoStart);
-        _onSettingsApplied(updated);
-        _loadedSnapshot = updated;
+        try
+        {
+            _settingsService.Save(updated);
+            AutoStartService.SetEnabled(updated.AutoStart);
+            _onSettingsApplied(updated);
+            _loadedSnapshot = updated;
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[SETTINGS] Save failed: {ex}");
+            System.Windows.MessageBox.Show(
+                this,
+                $"設定儲存失敗：{ex.Message}\n\n請確認設定資料夾可寫入後再試一次。",
+                "儲存失敗",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            return; // stay open so the user does not lose their edits
+        }
 
         await ShowSaveSuccessAsync();
 
         _allowClose = true;
         Close();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        // A connection test may still be running; don't let it outlive the window.
+        _testCts?.Cancel();
+        _testCts?.Dispose();
+        _testCts = null;
+        base.OnClosed(e);
     }
 
     private async Task ShowSaveSuccessAsync()
@@ -397,10 +420,12 @@ public partial class SettingsWindow : Window
         if (_suppressProviderEvents) return;
         if (_loadedSnapshot is null) return;
 
-        // capture key user just typed for the previous provider before switching
+        // Capture whatever is in the key field for the previous provider before switching.
+        // An empty value is captured too, so clearing a key and then switching provider
+        // actually removes it instead of silently resurrecting the old value.
         var previousProvider = _workingSettings.LlmProvider;
         var typedKey = TxtApiKey.Password;
-        if (!string.IsNullOrEmpty(typedKey) && previousProvider is "claude" or "openai" or "gemini")
+        if (previousProvider is "claude" or "openai" or "gemini")
         {
             _workingSettings = previousProvider switch
             {
@@ -539,7 +564,7 @@ public partial class SettingsWindow : Window
     private static string MapErrorMessage(ErrorKind kind, string provider, string raw) => kind switch
     {
         ErrorKind.ApiKey => "✗ API Key 無效或未授權，請確認 key 是否正確",
-        ErrorKind.RateLimit => "✗ 觸發速率限制，請稍候再試",
+        ErrorKind.RateLimit => "✗ 請求過於頻繁或額度已用盡（429），請稍候再試",
         ErrorKind.Timeout => "✗ 連線逾時（>8s），請檢查網路或 BaseUrl",
         ErrorKind.Network => $"✗ 網路連線失敗，請確認可連線到 {provider}",
         _ => $"✗ 連線失敗：{Truncate(raw, 100)}",
