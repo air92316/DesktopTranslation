@@ -37,7 +37,7 @@
 | | 功能 | 說明 |
 |---|---|---|
 | ⌨️ | **雙擊 Ctrl+C 即時翻譯** | 400ms 內連按兩次 Ctrl+C，翻譯結果立即浮現 |
-| 🌐 | **多翻譯引擎** | Google Translate（免費）+ Claude + OpenAI |
+| 🌐 | **多翻譯引擎** | Google Translate（免費，限流時自動切換 Microsoft / Bing 備援）+ Claude + OpenAI + Gemini |
 | 🎨 | **日式極簡 UI** | 藍染色 Ai-iro 主題，深色 / 淺色自動切換 |
 | 🔄 | **語言互換** | ⇄ 一鍵將翻譯結果反向翻譯 |
 | 📋 | **翻譯歷史** | 保存最近 50 筆翻譯，隨時回顧 |
@@ -103,8 +103,12 @@
 | 設定項目 | 說明 | 預設值 |
 |---|---|---|
 | 翻譯引擎 | Google Translate / LLM | Google |
-| LLM Provider | Claude / OpenAI | — |
-| API Key | LLM 翻譯所需的 API Key（DPAPI 加密存儲） | — |
+| LLM Provider | Claude / OpenAI / Gemini | Claude |
+| API Key | 各 Provider 分別保存的 API Key（DPAPI 加密存儲） | — |
+| Model | 下拉選擇或自訂模型 ID | 各家預設（Haiku 4.5 / gpt-5.4-nano / gemini-2.5-flash） |
+| Base URL | 自訂 OpenAI 相容端點（OpenRouter、Groq、Ollama 等） | 官方端點 |
+| 進階參數 | Temperature、Max Tokens（折疊區） | 0.3 / 2048 |
+| 測試連線 | 用目前設定實際打一次 API，確認 Key 與模型可用 | — |
 | 雙擊間隔 | 觸發翻譯的 Ctrl+C 間隔閾值 | 400ms |
 | TTS 語速 | 文字轉語音的朗讀速度 | 預設 |
 | 主題 | 跟隨系統 / 淺色 / 深色 | 跟隨系統 |
@@ -166,12 +170,12 @@
                              │
               ┌──────────────┼──────────────┐
               ▼              ▼              ▼
-     ┌──────────────┐ ┌──────────┐ ┌──────────┐
-     │   Google     │ │  Claude  │ │  OpenAI  │
-     │   Translate  │ │  API     │ │  API     │
-     │   (免費)     │ │          │ │          │
-     └──────┬───────┘ └────┬─────┘ └────┬─────┘
-            └──────────────┼────────────┘
+     ┌──────────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+     │   Google     │ │  Claude  │ │  OpenAI  │ │  Gemini  │
+     │   Translate  │ │  API     │ │  API     │ │  API     │
+     │ (免費+備援鏈)│ │          │ │          │ │          │
+     └──────┬───────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘
+            └──────────────┼────────────┴────────────┘
                            ▼
               ┌──────────────────────┐
               │  Translation Window  │──▶ History Service
@@ -184,9 +188,9 @@
 | 層級 | 技術 | 說明 |
 |---|---|---|
 | **UI** | WPF + XAML | 日式主題 ResourceDictionary、DPI 自適應 |
-| **翻譯 — 免費** | [GTranslate](https://www.nuget.org/packages/GTranslate) | Google Translate 非官方封裝，無需 API Key |
-| **翻譯 — AI** | [Claudia](https://www.nuget.org/packages/Claudia) / [OpenAI](https://www.nuget.org/packages/OpenAI) | Claude & GPT 官方 SDK，支援 streaming |
-| **韌性** | [Polly](https://www.nuget.org/packages/Polly) | 指數退避重試（2 次，10s 超時） |
+| **翻譯 — 免費** | [GTranslate](https://www.nuget.org/packages/GTranslate) | Google Translate 非官方封裝，無需 API Key；被限流時依序改走 Google RPC / Microsoft / Bing / Yandex |
+| **翻譯 — AI** | [Claudia](https://www.nuget.org/packages/Claudia) / [OpenAI](https://www.nuget.org/packages/OpenAI) / Gemini REST | Claude & GPT 官方 SDK；Gemini 直接呼叫 REST（無官方 .NET SDK） |
+| **韌性** | [Polly](https://www.nuget.org/packages/Polly) | 總逾時 20s，網路／逾時錯誤重試 1 次，429／401 不重試；成功結果有 LRU 快取 |
 | **語音** | System.Speech | Windows SAPI TTS，內建中英語音 |
 | **安全** | System.Security.Cryptography | DPAPI 加密 API Key（CurrentUser scope） |
 | **系統整合** | Win32 P/Invoke | 低階鍵盤 Hook、DPI 偵測、Registry 自啟 |
@@ -197,13 +201,14 @@
 ### 測試覆蓋
 
 ```
-180 tests — 0 failures
+292 tests — 0 failures
 
-  單元測試        118 ┃█████████████████████████████████████████░░░░░
-  整合測試         62 ┃██████████████████████░░░░░░░░░░░░░░░░░░░░░░░
+  單元測試        237 ┃█████████████████████████████████████░░░░░░░░░
+  整合測試         55 ┃█████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 
-  翻譯流程 (9)  ·  DPAPI 加密 (18)  ·  歷史紀錄 (7)  ·  安全驗證 (19)
-  DoubleTap (7) ·  語言偵測 (11)    ·  設定 (6)      ·  更新系統 (30)
+  翻譯流程 (9)  ·  DPAPI 加密 (18)  ·  歷史紀錄 (7)  ·  安全驗證 (21)
+  翻譯管線 (27) ·  Google 備援 (11) ·  快取 (8)      ·  LLM (56)
+  語言偵測 (25) ·  設定 (18)        ·  更新系統 (47) ·  DoubleTap (7)
   URL 驗證 (11) ·  版本比較 (29)    ·  UI 工具 (9)   ·  其他 (24)
 ```
 
@@ -253,7 +258,7 @@ DesktopTranslation/
 │   ├── Helpers/          # Win32 互操作、主題偵測、加密工具
 │   ├── Themes/           # 日式淺色 / 深色主題 XAML
 │   └── Assets/           # 圖示資源
-├── tests/                # 180 項單元測試 & 整合測試
+├── tests/                # 292 項單元測試 & 整合測試
 ├── installer/            # Inno Setup 安裝腳本
 ├── docs/                 # 設計規格文件
 └── website/              # 官方網站
