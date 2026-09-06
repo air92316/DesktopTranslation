@@ -211,4 +211,198 @@ public class TranslationServiceTests
             return new TranslationResult("done", "en", true);
         }
     }
+
+    /// <summary>Returns results from a queue in order; the last result repeats forever. Counts calls.</summary>
+    private sealed class ScriptedEngine : ITranslationEngine
+    {
+        private readonly Queue<Func<TranslationResult>> _script;
+        private Func<TranslationResult> _last;
+
+        public string Name => "Scripted";
+        public int CallCount { get; private set; }
+
+        public ScriptedEngine(params Func<TranslationResult>[] script)
+        {
+            _script = new Queue<Func<TranslationResult>>(script);
+            _last = script[^1];
+        }
+
+        public Task<TranslationResult> TranslateAsync(
+            string text, string targetLanguage, CancellationToken ct = default)
+        {
+            CallCount++;
+            if (_script.Count > 0)
+                _last = _script.Dequeue();
+            return Task.FromResult(_last());
+        }
+    }
+
+    private static TranslationResult Failure(ErrorKind kind) =>
+        new("", "unknown", false, "failed", kind);
+
+    // ── Retry semantics ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task TranslateAsync_NetworkFailure_RetriesOnceThenGivesUp()
+    {
+        var engine = new ScriptedEngine(() => Failure(ErrorKind.Network));
+        var service = new TranslationService();
+        service.RegisterEngine("g", engine);
+        service.SetEngine("g");
+
+        var result = await service.TranslateAsync("hello", "zh-TW");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorKind.Network, result.ErrorKind);
+        Assert.Equal(2, engine.CallCount);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_NetworkFailureThenSuccess_ReturnsSuccessFromRetry()
+    {
+        var engine = new ScriptedEngine(
+            () => Failure(ErrorKind.Network),
+            () => new TranslationResult("你好", "en", true));
+        var service = new TranslationService();
+        service.RegisterEngine("g", engine);
+        service.SetEngine("g");
+
+        var result = await service.TranslateAsync("hello", "zh-TW");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("你好", result.TranslatedText);
+        Assert.Equal(2, engine.CallCount);
+    }
+
+    [Theory]
+    [InlineData(ErrorKind.RateLimit)]
+    [InlineData(ErrorKind.ApiKey)]
+    [InlineData(ErrorKind.Unknown)]
+    public async Task TranslateAsync_NonTransientFailure_DoesNotRetry(ErrorKind kind)
+    {
+        var engine = new ScriptedEngine(() => Failure(kind));
+        var service = new TranslationService();
+        service.RegisterEngine("g", engine);
+        service.SetEngine("g");
+
+        var result = await service.TranslateAsync("hello", "zh-TW");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(kind, result.ErrorKind);
+        Assert.Equal(1, engine.CallCount);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_EngineThrows_RetriesOnceThenReturnsError()
+    {
+        var engine = new ScriptedEngine(() => throw new InvalidOperationException("boom"));
+        var service = new TranslationService();
+        service.RegisterEngine("g", engine);
+        service.SetEngine("g");
+
+        var result = await service.TranslateAsync("hello", "zh-TW");
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Translation failed", result.ErrorMessage);
+        Assert.Equal(2, engine.CallCount);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_ExceedsTotalTimeout_ReturnsTimeoutError()
+    {
+        var service = new TranslationService(totalTimeout: TimeSpan.FromMilliseconds(300));
+        service.RegisterEngine("slow", new SlowEngine());
+        service.SetEngine("slow");
+
+        var result = await service.TranslateAsync("hello", "zh-TW");
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorKind.Timeout, result.ErrorKind);
+        Assert.Equal("Translation timed out.", result.ErrorMessage);
+    }
+
+    // ── Cache semantics ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task TranslateAsync_SameRequestTwice_SecondComesFromCache()
+    {
+        var engine = new ScriptedEngine(() => new TranslationResult("你好", "en", true));
+        var service = new TranslationService();
+        service.RegisterEngine("g", engine);
+        service.SetEngine("g");
+
+        var first = await service.TranslateAsync("hello", "zh-TW");
+        var second = await service.TranslateAsync("hello", "zh-TW");
+
+        Assert.Equal(first, second);
+        Assert.Equal(1, engine.CallCount);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_DifferentTargetLanguage_IsNotServedFromCache()
+    {
+        var engine = new ScriptedEngine(() => new TranslationResult("x", "en", true));
+        var service = new TranslationService();
+        service.RegisterEngine("g", engine);
+        service.SetEngine("g");
+
+        await service.TranslateAsync("hello", "zh-TW");
+        await service.TranslateAsync("hello", "ja");
+
+        Assert.Equal(2, engine.CallCount);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_FailedResult_IsNotCached()
+    {
+        var engine = new ScriptedEngine(
+            () => Failure(ErrorKind.RateLimit),
+            () => new TranslationResult("你好", "en", true));
+        var service = new TranslationService();
+        service.RegisterEngine("g", engine);
+        service.SetEngine("g");
+
+        var first = await service.TranslateAsync("hello", "zh-TW");
+        var second = await service.TranslateAsync("hello", "zh-TW");
+
+        Assert.False(first.IsSuccess);
+        Assert.True(second.IsSuccess);
+        Assert.Equal(2, engine.CallCount);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_CacheIsPerEngine()
+    {
+        var google = new ScriptedEngine(() => new TranslationResult("g", "en", true));
+        var llm = new ScriptedEngine(() => new TranslationResult("l", "en", true));
+        var service = new TranslationService();
+        service.RegisterEngine("google", google);
+        service.RegisterEngine("llm", llm);
+
+        service.SetEngine("google");
+        await service.TranslateAsync("hello", "zh-TW");
+        service.SetEngine("llm");
+        var result = await service.TranslateAsync("hello", "zh-TW");
+
+        Assert.Equal("l", result.TranslatedText);
+        Assert.Equal(1, google.CallCount);
+        Assert.Equal(1, llm.CallCount);
+    }
+
+    [Fact]
+    public async Task RegisterEngine_ClearsCachedResults()
+    {
+        var first = new ScriptedEngine(() => new TranslationResult("old", "en", true));
+        var second = new ScriptedEngine(() => new TranslationResult("new", "en", true));
+        var service = new TranslationService();
+        service.RegisterEngine("llm", first);
+        service.SetEngine("llm");
+        await service.TranslateAsync("hello", "zh-TW");
+
+        service.RegisterEngine("llm", second); // e.g. user changed model in settings
+        var result = await service.TranslateAsync("hello", "zh-TW");
+
+        Assert.Equal("new", result.TranslatedText);
+        Assert.Equal(1, second.CallCount);
+    }
 }

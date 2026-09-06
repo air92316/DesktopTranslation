@@ -1,17 +1,35 @@
 using System.Diagnostics;
-using System.Net;
 using System.Net.Http;
-using System.Net.Sockets;
-using GTranslate.Translators;
 using DesktopTranslation.Models;
+using DesktopTranslation.Services.Llm;
+using GTranslate.Translators;
 
 namespace DesktopTranslation.Services;
 
+/// <summary>
+/// Free translation engine. Tries Google first and falls back through other free services
+/// (Google's newer RPC API, Microsoft/Edge, Bing, Yandex) when a service is rate-limited or down,
+/// so a 429 from translate.googleapis.com no longer surfaces as an error to the user.
+/// </summary>
 public class GoogleTranslateEngine : ITranslationEngine
 {
-    private readonly GoogleTranslator _translator = new();
+    /// <summary>Per-service HTTP timeout. GTranslate calls cannot be cancelled, so keep each hop short.</summary>
+    private static readonly TimeSpan PerServiceTimeout = TimeSpan.FromSeconds(6);
+
+    private readonly IReadOnlyList<IFallbackTranslator> _chain;
+
+    public GoogleTranslateEngine() : this(CreateDefaultChain())
+    {
+    }
+
+    internal GoogleTranslateEngine(IReadOnlyList<IFallbackTranslator> chain)
+    {
+        _chain = chain ?? throw new ArgumentNullException(nameof(chain));
+    }
 
     public string Name => "Google";
+
+    internal IReadOnlyList<string> ChainServiceNames => _chain.Select(t => t.Name).ToList();
 
     public async Task<TranslationResult> TranslateAsync(
         string text, string targetLanguage, CancellationToken ct = default)
@@ -19,81 +37,71 @@ public class GoogleTranslateEngine : ITranslationEngine
         if (string.IsNullOrWhiteSpace(text))
             return new TranslationResult("", "unknown", false, "Input text is empty");
 
-        try
+        var failures = new List<Exception>();
+
+        foreach (var translator in _chain)
         {
-            var result = await _translator.TranslateAsync(text, targetLanguage);
-            return new TranslationResult(
-                TranslatedText: result.Translation,
-                DetectedSourceLanguage: result.SourceLanguage.ISO6391 ?? "unknown",
-                IsSuccess: true);
+            // GTranslate has no cancellation support; at least don't start the next hop
+            // once the caller (debounce / hide window) has moved on.
+            ct.ThrowIfCancellationRequested();
+
+            if (!translator.SupportsLanguage(targetLanguage))
+                continue;
+
+            try
+            {
+                var result = await translator.TranslateAsync(text, targetLanguage);
+                if (failures.Count > 0)
+                    Debug.WriteLine($"Translation served by {translator.Name} after {failures.Count} failed service(s)");
+
+                return new TranslationResult(
+                    TranslatedText: result.Translation,
+                    DetectedSourceLanguage: result.SourceLanguage ?? "unknown",
+                    IsSuccess: true);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+            {
+                Debug.WriteLine($"{translator.Name} translation error: {ex}");
+                failures.Add(ex);
+            }
         }
-        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
-        {
-            Debug.WriteLine($"Google translation error: {ex}");
-            var errorKind = ClassifyError(ex, ct);
-            return new TranslationResult(
-                TranslatedText: "",
-                DetectedSourceLanguage: "unknown",
-                IsSuccess: false,
-                ErrorMessage: "Translation failed. Please check your connection and try again.",
-                ErrorKind: errorKind);
-        }
+
+        return new TranslationResult(
+            TranslatedText: "",
+            DetectedSourceLanguage: "unknown",
+            IsSuccess: false,
+            ErrorMessage: "Translation failed. Please check your connection and try again.",
+            ErrorKind: ClassifyFailures(failures, ct));
     }
 
-    private static ErrorKind ClassifyError(Exception exception, CancellationToken ct)
+    /// <summary>
+    /// Collapses the per-service failures into one user-facing kind:
+    /// every service unreachable → Network; any service throttled → RateLimit; otherwise the first known kind.
+    /// </summary>
+    private static ErrorKind ClassifyFailures(List<Exception> failures, CancellationToken ct)
     {
-        if (HasStatusCode(exception, HttpStatusCode.Unauthorized))
-            return ErrorKind.ApiKey;
+        if (failures.Count == 0)
+            return ErrorKind.Unknown;
 
-        if (HasStatusCode(exception, (HttpStatusCode)429))
-            return ErrorKind.RateLimit;
+        var kinds = failures.Select(ex => ProviderErrorHelpers.Classify(ex, ct)).ToList();
 
-        if (exception is TaskCanceledException && !ct.IsCancellationRequested)
-            return ErrorKind.Timeout;
-
-        if (exception is HttpRequestException || ContainsSocketException(exception))
+        if (kinds.All(k => k == ErrorKind.Network))
             return ErrorKind.Network;
 
-        return ErrorKind.Unknown;
+        if (kinds.Contains(ErrorKind.RateLimit))
+            return ErrorKind.RateLimit;
+
+        return kinds.FirstOrDefault(k => k != ErrorKind.Unknown, ErrorKind.Unknown);
     }
 
-    private static bool ContainsSocketException(Exception exception)
+    private static IReadOnlyList<IFallbackTranslator> CreateDefaultChain() => new IFallbackTranslator[]
     {
-        for (var current = exception; current is not null; current = current.InnerException)
-        {
-            if (current is SocketException)
-                return true;
-        }
+        new GTranslateFallbackAdapter(new GoogleTranslator(CreateHttpClient())),
+        new GTranslateFallbackAdapter(new GoogleTranslator2(CreateHttpClient())),
+        new GTranslateFallbackAdapter(new MicrosoftTranslator(CreateHttpClient())),
+        new GTranslateFallbackAdapter(new BingTranslator(CreateHttpClient())),
+        new GTranslateFallbackAdapter(new YandexTranslator(CreateHttpClient())),
+    };
 
-        return false;
-    }
-
-    private static bool HasStatusCode(Exception exception, HttpStatusCode expectedStatusCode)
-    {
-        for (var current = exception; current is not null; current = current.InnerException)
-        {
-            var statusCode = GetStatusCodeValue(current);
-            if (statusCode == (int)expectedStatusCode)
-                return true;
-        }
-
-        return false;
-    }
-
-    private static int? GetStatusCodeValue(Exception exception)
-    {
-        if (exception is HttpRequestException httpException && httpException.StatusCode is { } httpStatusCode)
-            return (int)httpStatusCode;
-
-        var property = exception.GetType().GetProperty("Status")
-            ?? exception.GetType().GetProperty("StatusCode");
-
-        if (property?.GetValue(exception) is HttpStatusCode enumStatusCode)
-            return (int)enumStatusCode;
-
-        if (property?.GetValue(exception) is int intStatusCode)
-            return intStatusCode;
-
-        return null;
-    }
+    private static HttpClient CreateHttpClient() => new() { Timeout = PerServiceTimeout };
 }
