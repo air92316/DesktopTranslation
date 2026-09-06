@@ -49,7 +49,11 @@ public class TrayIconManager : IDisposable
 
     public void UpdateMenu(bool autoStartEnabled, string currentEngine)
     {
+        // Rebuilding is simplest, but the old strip owns native handles: release it explicitly,
+        // otherwise every settings save / engine switch leaks one menu for the app's lifetime.
+        var oldMenu = _trayIcon.ContextMenuStrip;
         _trayIcon.ContextMenuStrip = BuildContextMenu(autoStartEnabled, currentEngine);
+        oldMenu?.Dispose();
     }
 
     private WinForms.ContextMenuStrip BuildContextMenu(bool autoStartEnabled, string currentEngine)
@@ -97,7 +101,7 @@ public class TrayIconManager : IDisposable
                 "─────────────────────────\n" +
                 "桌面即時翻譯工具\n\n" +
                 "雙擊 Ctrl+C 即可將選取文字快速翻譯。\n" +
-                "支援 Google Translate 及 LLM（Claude / OpenAI）引擎。\n" +
+                "支援 Google Translate 及 LLM（Claude / OpenAI / Gemini）引擎。\n" +
                 "自動偵測語言方向，中文翻英文、其他語言翻中文。\n\n" +
                 "開發者：Ramen Cat Studio\n" +
                 "授權條款：MIT License\n" +
@@ -135,6 +139,10 @@ public class TrayIconManager : IDisposable
     public void Dispose()
     {
         _trayIcon.Visible = false;
-        _trayIcon.Dispose();
+        var icon = _trayIcon.Icon;
+        var menu = _trayIcon.ContextMenuStrip;
+        _trayIcon.Dispose(); // NotifyIcon does not dispose the Icon / menu handed to it
+        menu?.Dispose();
+        icon?.Dispose();
     }
 }

@@ -9,6 +9,7 @@ public class HotkeyService : IDisposable
     private readonly Win32Interop.LowLevelKeyboardProc _hookProc;
     private readonly DoubleTapDetector _doubleTapDetector;
     private bool _ctrlPressed;
+    private bool _cPressed;
 
     public event Action? DoubleCopyDetected;
 
@@ -58,9 +59,18 @@ public class HotkeyService : IDisposable
             {
                 _ctrlPressed = isKeyDown;
             }
-            else if (hookStruct.vkCode == Win32Interop.VK_C && isKeyDown && _ctrlPressed)
+            else if (hookStruct.vkCode == Win32Interop.VK_C)
             {
-                if (_doubleTapDetector.RecordTap())
+                // Only the press edge counts as a tap. Windows auto-repeats WM_KEYDOWN while a key
+                // is held, and with a short repeat delay those repeats would land inside the
+                // double-tap window and fire "Ctrl+C twice" on a single long press.
+                var isPressEdge = isKeyDown && !_cPressed;
+                if (isKeyDown)
+                    _cPressed = true;
+                else if (isKeyUp)
+                    _cPressed = false;
+
+                if (isPressEdge && _ctrlPressed && _doubleTapDetector.RecordTap())
                 {
                     System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
                         DoubleCopyDetected?.Invoke());
