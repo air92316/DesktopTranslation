@@ -13,7 +13,11 @@ namespace DesktopTranslation.Services;
 /// </summary>
 public class GoogleTranslateEngine : ITranslationEngine
 {
-    /// <summary>Per-service HTTP timeout. GTranslate calls cannot be cancelled, so keep each hop short.</summary>
+    /// <summary>
+    /// Per-service HTTP timeout. GTranslate calls themselves cannot be cancelled, so each hop is
+    /// additionally raced against the caller's <see cref="CancellationToken"/> in <see cref="RunWithCancellation"/>
+    /// so the caller's own deadline (e.g. TranslationService's total timeout) is a hard upper bound.
+    /// </summary>
     private static readonly TimeSpan PerServiceTimeout = TimeSpan.FromSeconds(6);
 
     private readonly IReadOnlyList<IFallbackTranslator> _chain;
@@ -50,7 +54,7 @@ public class GoogleTranslateEngine : ITranslationEngine
 
             try
             {
-                var result = await translator.TranslateAsync(text, targetLanguage);
+                var result = await RunWithCancellation(translator.TranslateAsync(text, targetLanguage), ct);
                 if (failures.Count > 0)
                     Debug.WriteLine($"Translation served by {translator.Name} after {failures.Count} failed service(s)");
 
@@ -72,6 +76,30 @@ public class GoogleTranslateEngine : ITranslationEngine
             IsSuccess: false,
             ErrorMessage: "Translation failed. Please check your connection and try again.",
             ErrorKind: ClassifyFailures(failures, ct));
+    }
+
+    /// <summary>
+    /// Races a single fallback-service hop against the caller's cancellation token, since
+    /// <see cref="IFallbackTranslator.TranslateAsync"/> itself has no cancellation support (GTranslate
+    /// does not accept a <see cref="CancellationToken"/>). If <paramref name="ct"/> fires first, the
+    /// abandoned hop is left to complete in the background (its exception, if any, is observed so it
+    /// doesn't surface as an unobserved task exception) and this method throws immediately instead of
+    /// waiting for the hop to finish.
+    /// </summary>
+    private static async Task<FallbackTranslation> RunWithCancellation(
+        Task<FallbackTranslation> hop, CancellationToken ct)
+    {
+        var cancelled = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var registration = ct.Register(() => cancelled.TrySetResult(true));
+        var finished = await Task.WhenAny(hop, cancelled.Task);
+        if (finished != hop)
+        {
+            // Let the abandoned hop finish in the background without an unobserved exception.
+            _ = hop.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
+            ct.ThrowIfCancellationRequested();
+        }
+
+        return await hop;
     }
 
     /// <summary>

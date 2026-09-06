@@ -1,3 +1,4 @@
+using System.Net.Http;
 using DesktopTranslation.Models;
 using DesktopTranslation.Services;
 
@@ -293,9 +294,24 @@ public class TranslationServiceTests
     }
 
     [Fact]
-    public async Task TranslateAsync_EngineThrows_RetriesOnceThenReturnsError()
+    public async Task TranslateAsync_EngineThrowsNonTransient_DoesNotRetry()
     {
         var engine = new ScriptedEngine(() => throw new InvalidOperationException("boom"));
+        var service = new TranslationService();
+        service.RegisterEngine("g", engine);
+        service.SetEngine("g");
+
+        var result = await service.TranslateAsync("hello", "zh-TW");
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("Translation failed", result.ErrorMessage);
+        Assert.Equal(1, engine.CallCount);
+    }
+
+    [Fact]
+    public async Task TranslateAsync_EngineThrowsHttpRequestException_RetriesOnce()
+    {
+        var engine = new ScriptedEngine(() => throw new HttpRequestException("down"));
         var service = new TranslationService();
         service.RegisterEngine("g", engine);
         service.SetEngine("g");

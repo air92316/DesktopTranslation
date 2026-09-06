@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Net.Http;
+using System.Net.Sockets;
 using DesktopTranslation.Models;
 using Polly;
 using Polly.Retry;
@@ -8,7 +10,12 @@ namespace DesktopTranslation.Services;
 
 public class TranslationService
 {
-    /// <summary>Upper bound for one translation including any retry. Long LLM outputs need more than the old 10 s per attempt.</summary>
+    /// <summary>
+    /// Hard upper bound for one translation including any retry. Long LLM outputs need more than the old
+    /// 10 s per attempt. This is enforced as a real deadline: GoogleTranslateEngine races each of its
+    /// fallback-chain hops against this same cancellation token, so a slow underlying HTTP call can no
+    /// longer stretch the total wait past this timeout.
+    /// </summary>
     private static readonly TimeSpan DefaultTotalTimeout = TimeSpan.FromSeconds(20);
 
     private readonly Dictionary<string, ITranslationEngine> _engines = new();
@@ -26,9 +33,10 @@ public class TranslationService
         _cache = cache ?? new TranslationCache();
 
         // Order matters in Polly v8: the first strategy added is the outermost.
-        // Timeout outside → one overall deadline; retry inside → at most one extra attempt,
-        // and only for transient failures. Rate limits (429) and bad keys (401) are never retried
-        // because a retry would only make the throttling worse.
+        // Timeout outside → one hard overall deadline (GoogleTranslateEngine races its own per-service
+        // hops against this same token, so an in-flight hop can no longer stretch this deadline);
+        // retry inside → at most one extra attempt, and only for transient failures. Rate limits (429)
+        // and bad keys (401) are never retried because a retry would only make the throttling worse.
         _pipeline = new ResiliencePipelineBuilder<TranslationResult>()
             .AddTimeout(totalTimeout)
             .AddRetry(new RetryStrategyOptions<TranslationResult>
@@ -44,9 +52,30 @@ public class TranslationService
     private static bool IsTransient(Outcome<TranslationResult> outcome)
     {
         if (outcome.Exception is { } ex)
-            return ex is not OperationCanceledException;
+            return IsTransientException(ex);
 
         return outcome.Result is { IsSuccess: false, ErrorKind: ErrorKind.Network or ErrorKind.Timeout };
+    }
+
+    /// <summary>
+    /// Only known transient failures are retried: network errors, socket errors, and timeouts
+    /// (including an HttpClient-internal timeout, which surfaces as a TaskCanceledException whose own
+    /// token was never cancelled). A genuine bug (e.g. NullReferenceException, InvalidOperationException)
+    /// or an actual caller-requested cancellation is not retried — retrying would just mask the bug or
+    /// fight the caller's own cancellation.
+    /// </summary>
+    private static bool IsTransientException(Exception ex)
+    {
+        if (ex is TaskCanceledException taskCanceled)
+            return !taskCanceled.CancellationToken.IsCancellationRequested;
+
+        for (var current = ex; current is not null; current = current.InnerException)
+        {
+            if (current is HttpRequestException or SocketException or TimeoutException)
+                return true;
+        }
+
+        return false;
     }
 
     public void RegisterEngine(string key, ITranslationEngine engine)

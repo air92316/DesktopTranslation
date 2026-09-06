@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
@@ -204,11 +205,29 @@ public class GoogleTranslateEngineTests
         var engine = new GoogleTranslateEngine();
 
         var names = engine.ChainServiceNames;
-        Assert.Equal(5, names.Count);
-        Assert.Contains("Google", names[0]);
-        Assert.Contains("Google", names[1]);
-        Assert.Contains("Microsoft", names[2]);
-        Assert.Contains("Bing", names[3]);
-        Assert.Contains("Yandex", names[4]);
+        Assert.Equal(
+            new[] { "GoogleTranslator", "GoogleTranslator2", "MicrosoftTranslator", "BingTranslator", "YandexTranslator" },
+            names);
+    }
+
+    [Fact]
+    public async Task OuterCancellation_DuringHop_AbortsChainWithoutStartingNextHop()
+    {
+        var neverCompletes = new TaskCompletionSource<FallbackTranslation>();
+        var google = new FakeFallbackTranslator("Google", (_, _) => neverCompletes.Task);
+        var bing = Succeeding("Bing", "哈囉");
+        var engine = new GoogleTranslateEngine(new IFallbackTranslator[] { google, bing });
+
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(TimeSpan.FromMilliseconds(100));
+
+        var stopwatch = Stopwatch.StartNew();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => engine.TranslateAsync("hello", "zh-TW", cts.Token));
+        stopwatch.Stop();
+
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(2),
+            $"Expected cancellation to abort within 2s, took {stopwatch.Elapsed}");
+        Assert.Equal(0, bing.CallCount);
     }
 }
