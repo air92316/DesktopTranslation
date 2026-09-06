@@ -96,7 +96,7 @@ begin
       if MsgBox('自動下載 .NET 8 Runtime 失敗。' + #13#10 + #13#10 +
                 '請手動前往以下網址下載安裝：' + #13#10 +
                 'https://dotnet.microsoft.com/download/dotnet/8.0' + #13#10 + #13#10 +
-                '是��繼續安裝？（安裝後需手動安裝 .NET 8 才能執行程式）',
+                '是否要繼續安裝？（安裝後需手動安裝 .NET 8 才能執行程式）',
                 mbConfirmation, MB_YESNO) = IDNO then
       begin
         Result := False;
@@ -129,8 +129,8 @@ begin
 
   if not IsDotNet8Installed then
   begin
-    if MsgBox('{#MyAppName} 需��� .NET 8 Desktop Runtime 才能執行。' + #13#10 + #13#10 +
-              '���否要自動下載並安裝？（約 55MB）',
+    if MsgBox('{#MyAppName} 需要 .NET 8 Desktop Runtime 才能執行。' + #13#10 + #13#10 +
+              '是否要自動下載並安裝？（約 55MB）',
               mbConfirmation, MB_YESNO) = IDYES then
     begin
       Result := DownloadAndInstallDotNet;

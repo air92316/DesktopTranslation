@@ -51,7 +51,18 @@ if (-not $GhExe) {
 }
 Write-Host "  GitHub CLI: $GhExe"
 
+# Refuse to reuse a tag: a half-finished earlier run would otherwise leave the tag on the old commit
+git -C $Root rev-parse -q --verify "refs/tags/v$Version" *> $null
+if ($LASTEXITCODE -eq 0) {
+    throw "Tag v$Version already exists. Delete it (git tag -d v$Version; git push origin :refs/tags/v$Version) or pick a new version."
+}
+
 Write-Host "  All checks passed" -ForegroundColor Green
+
+# Version files are edited before anything is committed; roll them back if a later step fails
+# so the working tree is not left dirty with a half-applied release.
+$VersionFilesCommitted = $false
+try {
 
 # ── 1. Update csproj version ─────────────────────────────────────
 Write-Host "`n[1/6] Updating csproj version..." -ForegroundColor Yellow
@@ -103,12 +114,19 @@ if ($Iscc) {
 # ── 5. Git commit and tag ────────────────────────────────────────
 Write-Host "`n[5/6] Git commit and tag..." -ForegroundColor Yellow
 Push-Location $Root
-git add src/DesktopTranslation/DesktopTranslation.csproj
-git add installer/setup.iss
-git commit -m "release: v$Version"
-git tag "v$Version"
-git push origin master --tags
-Pop-Location
+try {
+    git add src/DesktopTranslation/DesktopTranslation.csproj installer/setup.iss
+    if ($LASTEXITCODE -ne 0) { throw "git add failed" }
+    git commit -m "release: v$Version"
+    if ($LASTEXITCODE -ne 0) { throw "git commit failed" }
+    $VersionFilesCommitted = $true
+    git tag "v$Version"
+    if ($LASTEXITCODE -ne 0) { throw "git tag failed" }
+    git push origin master --tags
+    if ($LASTEXITCODE -ne 0) { throw "git push failed" }
+} finally {
+    Pop-Location
+}
 
 # ── 6. GitHub Release ─────────────────────────────────────────────
 Write-Host "`n[6/6] Creating GitHub release..." -ForegroundColor Yellow
@@ -121,6 +139,16 @@ if (Test-Path $SetupExe) {
     Write-Host "  GitHub release v$Version created"
 } else {
     throw "Setup exe not found at $SetupExe"
+}
+
+} catch {
+    if (-not $VersionFilesCommitted) {
+        Write-Host "`nRelease failed before commit; restoring version files..." -ForegroundColor DarkYellow
+        git -C $Root checkout -- src/DesktopTranslation/DesktopTranslation.csproj installer/setup.iss
+    } else {
+        Write-Host "`nRelease failed after the version commit. Tag/push/release may be incomplete; fix manually before re-running." -ForegroundColor DarkYellow
+    }
+    throw
 }
 
 Write-Host "`n=== Release v$Version complete ===" -ForegroundColor Green
